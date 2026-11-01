@@ -29,7 +29,7 @@ A dynamic tabular document creator for easy maintenance of Excel files. Import a
 
 ## Getting started
 
-1. Download `dynadoc.html`.
+1. Download `talika.html`.
 2. Open it in Chrome, Edge, Firefox, or Safari.
 3. Click **Import Excel** (up-arrow icon) to build a table from a spreadsheet, or **Add Column** to start from scratch.
 4. Click **Add Entry** (plus icon) to add rows.

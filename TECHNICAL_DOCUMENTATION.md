@@ -10,7 +10,7 @@
 
 ## 1. Rules for a Claude session
 
-1. Edit only one file: `dynadoc.html`. It holds all the code.
+1. Edit only one file: `talika.html`. It holds all the code.
 2. Do not edit the first two `<script>` blocks. They contain the Vue and SheetJS libraries.
 3. Edit only the third `<script>` block, the HTML template, and the CSS.
 4. Keep the app offline. Do not add a network request. Do not add a CDN link.
@@ -18,14 +18,14 @@
 6. Do not use `window.confirm()` or `window.alert()`. Use the custom modals.
 7. Do not rename the storage keys. They start with `use-case-tracker`. A rename hides the data that users saved.
 8. Test each change in a headless browser before you deliver the file (see Section 12).
-9. Copy the final file to `/mnt/user-data/outputs/dynadoc.html`. Send it to the user with `SendUserFile`.
+9. Copy the final file to `/mnt/user-data/outputs/talika.html`. Send it to the user with `SendUserFile`.
 10. When you change a feature, also update `README.md` and the design document (see Section 14).
 
 ---
 
 ## 2. Product summary
 
-Talika (tagline: *The List*) is a dynamic tabular document creator. It was called DynaDoc before step 26. The file name `dynadoc.html`, the storage keys, and the GitHub Pages URL keep the old name on purpose. It helps a user keep an Excel file up to date.
+Talika (tagline: *The List*) is a dynamic tabular document creator. It was called DynaDoc before step 26. The app file is now `talika.html`. The storage keys and the GitHub Pages URL keep the old name on purpose. It helps a user keep an Excel file up to date.
 
 - The user imports an Excel file or adds columns by hand.
 - The user edits the data in a table.
@@ -40,7 +40,7 @@ The app has no fixed schema. It runs in the browser from one HTML file. It works
 
 | File | Purpose |
 | --- | --- |
-| `dynadoc.html` | The complete app. This is the main deliverable. |
+| `talika.html` | The complete app. This is the main deliverable. |
 | `README.md` | The GitHub readme. |
 | `LICENSE` | MIT license. |
 | `TECHNICAL_DOCUMENTATION.md` | This document. |
@@ -48,11 +48,11 @@ The app has no fixed schema. It runs in the browser from one HTML file. It works
 
 **Working paths in a Claude session:**
 
-- Working copy: `/home/claude/dynadoc.html`
-- Delivery copy: `/mnt/user-data/outputs/dynadoc.html`
+- Working copy: `/home/claude/talika.html`
+- Delivery copy: `/mnt/user-data/outputs/talika.html`
 - Scratch scripts: the session scratchpad directory.
 
-If the working copy is missing, copy it from the delivery copy. If the delivery copy is also missing, read `dynadoc.html` from the Project with `project_read`. Large files are saved to a local path. After a change, write the file back with `project_write` and `local_path`.
+If the working copy is missing, copy it from the delivery copy. If the delivery copy is also missing, read `talika.html` from the Project with `project_read`. Large files are saved to a local path. After a change, write the file back with `project_write` and `local_path`.
 
 **Design document:** A Claude Docs document holds the design description. Its ID is `3bae4ae0-91b0-4bde-85a2-f4e0b4dc3f2f`. Its tab ID is `792f0385-61f9`. Its body node ID is `e53e82e2-5ccd`.
 
@@ -82,7 +82,7 @@ If the working copy is missing, copy it from the delivery copy. If the delivery 
 
 ### 5.1 File layout
 
-`dynadoc.html` has one `<style>` block, one `<div id="app">` template, and three `<script>` blocks.
+`talika.html` has one `<style>` block, one `<div id="app">` template, and three `<script>` blocks.
 
 | Block | Content | Edit? |
 | --- | --- | --- |
@@ -488,20 +488,20 @@ thead th.col-actions-th { z-index: 4; }  /* also sticky right */
 
 ## 12. Work procedure for a change
 
-1. **Prepare.** Copy `/mnt/user-data/outputs/dynadoc.html` to `/home/claude/dynadoc.html`. If it is missing, read it from the Project (see Section 3).
+1. **Prepare.** Copy `/mnt/user-data/outputs/talika.html` to `/home/claude/talika.html`. If it is missing, read it from the Project (see Section 3).
 2. **Find the code.** Search for the function or CSS class name in the working copy.
 3. **Edit.** Use the Edit tool for small changes. If you add something that the template uses, add it to the `return { ... }` object.
 4. **Check the structure.** Count the opening and closing tags of `div`, `table`, `tr`, `th`, `td`. They must match.
 5. **Test.** Write a Playwright script in the scratchpad. See Section 13.
 6. **Look at the result.** Take a screenshot. Use the Read tool to look at it. Test with many rows. A short table can hide layout errors.
-7. **Deliver.** Copy the file to `/mnt/user-data/outputs/dynadoc.html`. Send it with `SendUserFile`. Write one short caption.
+7. **Deliver.** Copy the file to `/mnt/user-data/outputs/talika.html`. Send it with `SendUserFile`. Write one short caption.
 8. **Update the documents.** See Section 14.
 
 ---
 
 ## 13. Test method
 
-No automated test suite exists. Each session writes short Playwright scripts. Chromium is installed. Use `require('playwright')` in a Node script. Open the file with `file:///home/claude/dynadoc.html`. If `require` fails, set `NODE_PATH` to the output of `npm root -g`.
+No automated test suite exists. Each session writes short Playwright scripts. Chromium is installed. Use `require('playwright')` in a Node script. Open the file with `file:///home/claude/talika.html`. If `require` fails, set `NODE_PATH` to the output of `npm root -g`.
 
 **Selectors that work:**
 
@@ -598,7 +598,7 @@ No automated test suite exists. Each session writes short Playwright scripts. Ch
 - **Browser extension.** The user plans to convert Talika to a Manifest V3 extension. A todo exists in the Floty app, starting 19 October 2026. Extension pages block inline scripts and `eval`. The work needs these steps:
   1. Move the three scripts into separate `.js` files.
   2. Precompile the Vue templates with a Vite build.
-  3. Add `manifest.json` and a background script. The script opens `dynadoc.html` in a tab when the user clicks the toolbar icon.
+  3. Add `manifest.json` and a background script. The script opens `talika.html` in a tab when the user clicks the toolbar icon.
   4. Think about `chrome.storage.local` with the `unlimitedStorage` permission for large tables.
 - **Export default name.** It is still `use-cases-<date>`. The user can ask to change it to `dynadoc-<date>`.
 - **Storage key prefix.** It is still `use-case-tracker`. Do not change it unless you also write a migration.

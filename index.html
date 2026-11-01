@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f7f6">
-  <meta name="description" content="A flexible, private workspace for turning spreadsheets into useful, searchable tables. Import, shape, and export your data with Talika.">
-  <title>Talika — The List | Make your spreadsheet work for you</title>
+  <meta name="description" content="A flexible, private workspace for turning spreadsheets into useful, searchable tables. Import, shape, and export your data with WebTalika.">
+  <title>WebTalika — The List | Make your spreadsheet work for you</title>
   <style>
     :root {
       color-scheme: light;
@@ -100,6 +100,7 @@
       letter-spacing: 0;
     }
     h1 span { color: var(--teal); font-style: italic; }
+    .hero-copy > .hero-lead { max-width: 520px; margin-bottom: 20px; color: var(--teal-dark); font-family: Georgia, "Times New Roman", serif; font-size: clamp(26px, 2.8vw, 34px); line-height: 1.2; }
     .hero-copy > p { max-width: 500px; margin-bottom: 30px; color: var(--ink-soft); font-size: 19px; line-height: 1.55; }
     .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 19px; }
     .button-primary {
@@ -228,11 +229,10 @@
       align-items: center;
       justify-content: space-between;
       gap: 28px;
-      padding: 30px 0;
+      padding: 22px 0;
       border-top: 1px solid var(--line);
       border-bottom: 1px solid var(--line);
     }
-    .trust-lead { max-width: 360px; color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 24px; line-height: 1.25; }
     .trust-item { display: flex; align-items: center; gap: 9px; color: var(--ink); font-size: 15px; font-weight: 700; white-space: nowrap; }
     .trust-item svg { color: var(--teal); }
 
@@ -308,7 +308,6 @@
       h1 { font-size: 54px; }
       .float-note { right: -8px; }
       .trust-row { flex-wrap: wrap; justify-content: flex-start; }
-      .trust-lead { max-width: none; width: 100%; }
     }
     @media (max-width: 700px) {
       .shell { width: min(100% - 40px, 520px); }
@@ -326,7 +325,6 @@
       .mock-table th:last-child, .mock-table td:last-child { display: none; }
       .float-note { right: 8px; bottom: -38px; }
       .trust-row { gap: 16px 22px; padding: 19px 0; }
-      .trust-lead { font-size: 21px; }
       .trust-item { font-size: 14px; }
       .features { padding: 68px 0; }
       .section-heading { display: block; margin-bottom: 25px; }
@@ -375,13 +373,13 @@
 </head>
 <body>
   <header class="shell topbar">
-    <a class="brand" href="#top" aria-label="Talika home">
+    <a class="brand" href="#top" aria-label="WebTalika home">
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M7 3.75h7l4 4v12.5H7a2 2 0 0 1-2-2v-12.5a2 2 0 0 1 2-2Z"/><path d="M14 4v4h4M9 12h6M9 16h6"/><path d="m7.4 11.8.8.8 1.4-1.6" stroke="#e9b86f"/>
         </svg>
       </span>
-      <span class="brand-name">Talika</span><span class="brand-tagline">The List</span>
+      <span class="brand-name">WebTalika</span><span class="brand-tagline">The List</span>
     </a>
     <nav class="nav" aria-label="Main navigation">
       <a href="#features">Features</a>
@@ -395,9 +393,10 @@
       <div class="hero-copy">
         <div class="eyebrow">A more flexible way to work with data</div>
         <h1 id="hero-title">Your data.<br><span>Your way.</span></h1>
+        <p class="hero-lead">A focused tool for the information you already manage.</p>
         <p>Turn spreadsheets into a clear, capable workspace. Shape your columns, keep every detail in view, and export when you’re ready.</p>
         <div class="hero-actions">
-          <a class="button-primary" href="talika.html">Open Talika <span class="arrow" aria-hidden="true">↗</span></a>
+          <a class="button-primary" href="talika.html">Open WebTalika <span class="arrow" aria-hidden="true">↗</span></a>
           <a class="text-link" href="#features">Take a closer look <span aria-hidden="true">↓</span></a>
         </div>
         <p class="quiet-note">
@@ -409,7 +408,7 @@
       <div class="product-scene" aria-hidden="true">
         <span class="scene-index">01 / A table, shaped around you</span>
         <div class="app-window">
-          <div class="window-bar" aria-hidden="true"><span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span><span class="window-label">Talika · use-cases</span></div>
+          <div class="window-bar" aria-hidden="true"><span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span><span class="window-label">WebTalika · use-cases</span></div>
           <div class="mock-app">
             <div class="mock-head">
               <div class="mock-title"><span class="mini-mark">D</span> Use cases</div>
@@ -438,8 +437,7 @@
       </div>
     </section>
 
-    <section class="shell trust-row" aria-label="Talika at a glance">
-      <span class="trust-lead">A focused tool for the information you already manage.</span>
+    <section class="shell trust-row" aria-label="WebTalika at a glance">
       <span class="trust-item"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 4.5h14v11H3zM3 8h14M7.5 8v7.5M12.5 8v7.5" stroke="currentColor" stroke-width="1.4"/></svg>Flexible tables</span>
       <span class="trust-item"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 3.5h7l3 3v10H5a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 5 3.5Z" stroke="currentColor" stroke-width="1.4"/><path d="M12 4v3h3M7 11h6M7 14h6" stroke="currentColor" stroke-width="1.4"/></svg>Excel in, Excel out</span>
       <span class="trust-item"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 16 5v4.4c0 3.8-2.6 6.5-6 8.1-3.4-1.6-6-4.3-6-8.1V5l6-2.5Z" stroke="currentColor" stroke-width="1.4"/><path d="m7.5 9.8 1.6 1.6 3.5-3.7" stroke="currentColor" stroke-width="1.4"/></svg>Private by design</span>
@@ -503,7 +501,7 @@
       <div class="tool-grid">
         <article class="tool-item"><span class="tool-number">01</span><h3>Import and export Excel</h3><p>Bring in an existing workbook with all its sheets, then export every sheet tab with columns in their current order.</p></article>
         <article class="tool-item"><span class="tool-number">02</span><h3>Resize and hide columns</h3><p>Drag a column header’s edge to give values room, or hide columns you don’t need. A red badge counts what’s hidden.</p></article>
-        <article class="tool-item"><span class="tool-number">03</span><h3>Change a column type</h3><p>Switch types as your needs change. Talika previews values that cannot convert before you confirm.</p></article>
+        <article class="tool-item"><span class="tool-number">03</span><h3>Change a column type</h3><p>Switch types as your needs change. WebTalika previews values that cannot convert before you confirm.</p></article>
         <article class="tool-item"><span class="tool-number">04</span><h3>Reimport and merge</h3><p>Merge a workbook by matching sheets and columns by name, add its sheets as new tabs, or replace everything.</p></article>
         <article class="tool-item"><span class="tool-number">05</span><h3>Reset the table</h3><p>Clear all rows and columns with a confirmation before the reset is applied.</p></article>
         <article class="tool-item"><span class="tool-number">06</span><h3>Filter any column</h3><p>Filter ranges, pick Set values, or match text in any column. Filtered columns turn amber, and one click clears them all.</p></article>
@@ -517,7 +515,7 @@
       <div class="shell privacy-inner">
         <div class="privacy-copy">
           <span class="privacy-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 2.5 16 5v4.4c0 3.8-2.6 6.5-6 8.1-3.4-1.6-6-4.3-6-8.1V5l6-2.5Z"/><path d="m7.5 9.8 1.6 1.6 3.5-3.7"/></svg></span>
-          <div><h2>Your work stays yours.</h2><p>Talika stores your data in this browser. Nothing is sent to a server.</p></div>
+          <div><h2>Your work stays yours.</h2><p>WebTalika stores your data in this browser. Nothing is sent to a server.</p></div>
         </div>
         <span class="privacy-pill">Local storage · Browser only</span>
       </div>
@@ -525,14 +523,14 @@
 
     <section class="shell closing">
       <div><h2>Make room for your way of working.</h2><p>Bring a spreadsheet, or start with a blank table.</p></div>
-      <a class="button-primary" href="dynadoc.html">Open Talika <span class="arrow" aria-hidden="true">↗</span></a>
+      <a class="button-primary" href="talika.html">Open WebTalika <span class="arrow" aria-hidden="true">↗</span></a>
     </section>
   </main>
 
   <footer>
     <div class="shell footer-inner">
-      <span>© Talika · The List. A flexible table for everyday work.</span>
-      <nav class="footer-links" aria-label="Footer navigation"><a href="dynadoc.html">Open the app</a><a href="https://github.com/PlatoEdes-PTY-LTD/Talika">Documentation</a><a href="mailto:admin@platoedes.com.au">admin@platoedes.com.au</a></nav>
+      <span>© WebTalika · The List. A flexible table for everyday work.</span>
+      <nav class="footer-links" aria-label="Footer navigation"><a href="talika.html">Open the app</a><a href="https://github.com/PlatoEdes-PTY-LTD/Talika">Documentation</a><a href="mailto:admin@platoedes.com.au">admin@platoedes.com.au</a></nav>
     </div>
   </footer>
 </body>
