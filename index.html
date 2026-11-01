@@ -386,7 +386,8 @@
     <nav class="nav" aria-label="Main navigation">
       <a href="#features">Features</a>
       <a href="https://github.com/PlatoEdes-PTY-LTD/Talika">Documentation</a>
-      <a class="nav-cta" href="talika.html">Open the app <span class="arrow" aria-hidden="true">↗</span></a>
+      <a id="download-app" href="talika.html" download="talika.html" title="Download the app as one HTML file to run offline from your disk. Your data is not included.">Download</a>
+      <a class="nav-cta" href="talika.html">Open WebTalika <span class="arrow" aria-hidden="true">↗</span></a>
     </nav>
   </header>
 
@@ -535,5 +536,27 @@
       <nav class="footer-links" aria-label="Footer navigation"><a href="talika.html">Open the app</a><a href="https://github.com/PlatoEdes-PTY-LTD/Talika">Documentation</a><a href="mailto:admin@platoedes.com.au">admin@platoedes.com.au</a></nav>
     </div>
   </footer>
+  <script>
+    /* the download attribute is only a hint: browsers ignore it for file:// pages and
+       some servers, so fetch the app and save it as a blob instead */
+    document.getElementById('download-app').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const res = await fetch('talika.html', { cache: 'no-store' });
+        if (!res.ok) throw new Error(res.status);
+        const url = URL.createObjectURL(new Blob([await res.text()], { type: 'text/html' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'talika.html';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (err) {
+        // fetch is blocked from file:// — the app is already on disk next to this page
+        location.href = 'talika.html';
+      }
+    });
+  </script>
 </body>
 </html>

@@ -45,7 +45,6 @@
   .app-icon{flex-shrink:0;border-radius:8px;display:block;}
   .app-tagline{align-self:flex-end;margin:0 0 3px -2px;font-size:12.5px;font-weight:500;color:var(--ink-soft);letter-spacing:.02em;}
   .page-head p{margin:0;color:var(--ink-soft);font-size:13px;}
-  .btn-save-app{margin-left:6px;}
   .head-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;min-width:0;}
   .current-file{font-size:12.5px;color:var(--teal-dark);max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:4px;}
   @media (max-width:640px){ .current-file{flex-basis:100%;max-width:none;text-align:right;margin-right:0;} }
@@ -376,10 +375,6 @@
       </button>
       <button class="btn" @click="openNewInstance" title="New Window: open an independent copy of WebTalika in a new tab. It does not share data with this one." aria-label="New Window">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      </button>
-      <button class="btn btn-save-app" v-if="!runningFromDisk" @click="saveApp" title="Save App: download this app as an HTML file to run offline from your disk. Your data is not included — use Export Excel for that." aria-label="Download App">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Save App
       </button>
     </div>
   </div>
@@ -947,9 +942,6 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 <script>
 const { createApp, ref, reactive, computed, nextTick } = Vue;
 
-/* the page's own HTML, taken before Vue replaces the #app template with
-   rendered output: Save App's fallback when it can't fetch the page */
-const APP_SOURCE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 
 /* ---------------- Combobox component ---------------- */
 const ComboBox = {
@@ -2419,26 +2411,6 @@ createApp({
       showToast(sheets.length === 1 ? 'Exported Excel file' : `Exported Excel file with ${sheets.length} sheets`);
     }
 
-    /* ---- save the app itself ---- */
-    // opened from the local disk, the app is already saved, so Save App is hidden
-    const runningFromDisk = location.protocol === 'file:';
-    async function saveApp() {
-      let html = APP_SOURCE;
-      try {
-        const res = await fetch(location.href.split('#')[0], { cache: 'no-store' });
-        if (res.ok) html = await res.text();
-      } catch (e) { /* offline — use the snapshot */ }
-      const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'talika.html';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      showToast('Saved the app as talika.html — open it from your disk to run offline');
-    }
-
     loadPersisted();
 
     return {
@@ -2464,7 +2436,7 @@ createApp({
       openFilterCol, activeFilterCount, filterTitle, clearAllFilters,
       tabFilters, tabFilterTests, tabFilterSources, tabFilterOpLabels, tabFilterOpsFor, tabFilterColType,
       tabFilterSourceValue, setTabFilterSource, tabFilterValueOptions, fixTabFilterOp, addTabFilter, removeTabFilter, clearTabFilters,
-      openNewInstance, saveApp, runningFromDisk,
+      openNewInstance,
       resetAllOpen, resetAll,
       openAdd, openEdit, closeDialog, saveEntry, confirmDelete, doDelete,
       handleImport, startResize,

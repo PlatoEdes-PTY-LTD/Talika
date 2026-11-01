@@ -258,9 +258,9 @@ The labels in the UI come from the `typeLabels` object: Text, Date, Date & Time,
 
 The toolbar has these items, from left to right: Add Entry, Add Column, Show/Hide Columns, Clear Filters, Search box, Add Tab Filter.
 
-The page header (`.page-head`) has the app name, tagline, and entry count on the left. On the right (`.head-actions`) it has "You are editing <file>" (`.current-file`, shown after an import), then Import Excel, Export Excel, Reset All, New Window, and **Save App** (icon and text, at the right corner). The header has no description line.
+The page header (`.page-head`) has the app name, tagline, and entry count on the left. On the right (`.head-actions`) it has "You are editing <file>" (`.current-file`, shown after an import), then Import Excel, Export Excel, Reset All, and New Window. The header has no description line.
 
-**Save App** (`saveApp`) downloads the app as `talika.html`. The button is hidden when the page runs from the local disk (`runningFromDisk`: `location.protocol === 'file:'`), because the app is already saved there. It fetches the page's own URL and saves the exact file. If the fetch fails (for example offline), it saves `APP_SOURCE`: `document.documentElement.outerHTML` taken at the top of script 3, before Vue mounts and replaces the `#app` template. Keep that line above `createApp(...)`, or the fallback copy will hold rendered output instead of the template. The copy holds no user data.
+The app has no Save App button. The **Download App** link in the header of `index.html` (between Documentation and Open the app) downloads the app instead. It is a plain `<a href="talika.html" download="talika.html">`, with no script.
 
 - The Search box (`.search-wrap`) takes the free space. Its CSS is `flex: 1 1 30%; min-width: 30%`. It is at least 30 percent of the toolbar width. The toolbar wraps on a narrow screen.
 - The toolbar has no spacer. The Search box fills the gap.
@@ -590,6 +590,7 @@ No automated test suite exists. Each session writes short Playwright scripts. Ch
 | 28 | Clear (×) button inside the Search box. Esc in the box also clears it. |
 | 29 | Save App button at the right corner of the header. It downloads the app as `talika.html`. Hidden when the app runs from the local disk. |
 | 30 | Tab filters: Add Tab Filter toolbar button after the Search box and a condition bar above the table. A condition compares a column of the shown sheet (contains, equals, greater, less, before, after, by type) with a column of another sheet, or with one value picked from it. All conditions must match. Kept per sheet with the view state; not saved. |
+| 31 | Save App is removed from the app. A Download App link in the `index.html` header, between Documentation and Open the app, downloads `talika.html` instead. |
 
 ---
 

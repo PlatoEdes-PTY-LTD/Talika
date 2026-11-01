@@ -24,7 +24,7 @@
 - **Pinned actions column.** Edit and Delete stay visible at the right edge while the table scrolls horizontally.
 - **More-columns dots.** The header of the actions column shows a three-dots button when more columns are hidden to the right. Click it to scroll right. It disappears at the end of the table.
 - **Multiple independent instances.** Each browser tab has its own data. The **New Window** button opens a fresh, separate copy.
-- **Save App.** The **Save App** button at the top right downloads the app as `talika.html`, so you can keep it on your disk and run it offline. The button shows only when the app is opened from the web, not from a file on your disk. Your data is not in that file; use Export for your data.
+- **Download App.** The **Download App** link in the header of the [home page](https://platoedes-pty-ltd.github.io/Talika/index.html) downloads the app as `talika.html`, so you can keep it on your disk and run it offline. Your data is not in that file; use Export for your data.
 - **Fully offline.** Vue 3 and SheetJS are bundled inline in the one HTML file.
 
 ## Getting started
