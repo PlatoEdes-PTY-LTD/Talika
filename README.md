@@ -1,10 +1,10 @@
-# WebTaliks (Web Talika)
+# WebTalika
 
 *The List*
 
-**WebTaliks**, also known as **Web Talika** or **Talika**, is a free, open-source web app for editing spreadsheets in the browser. It is a dynamic tabular document creator for easy maintenance of Excel files. Import a spreadsheet or define your own columns, edit the data in a clean table, and export it back to Excel. There is no fixed schema, so you can track anything: use cases, contacts, inventory, tasks. Everything runs in the browser from a single file, with no server, no account, and no build step.
+**WebTalika**, also known as **Talika**, is a free, open-source web app for editing spreadsheets in the browser. It is a dynamic tabular document creator for easy maintenance of Excel files. Import a spreadsheet or define your own columns, edit the data in a clean table, and export it back to Excel. There is no fixed schema, so you can track anything: use cases, contacts, inventory, tasks. Everything runs in the browser from a single file, with no server, no account, and no build step.
 
-[Open WebTaliks (Web Talika)](https://platoedes-pty-ltd.github.io/Talika/index.html)
+[Open WebTalika](https://platoedes-pty-ltd.github.io/Talika/index.html)
 
 ## Features
 
