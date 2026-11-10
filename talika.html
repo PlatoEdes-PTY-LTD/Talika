@@ -626,14 +626,19 @@
         </button>
       </div>
       <div class="modal-body">
-        <div class="field" v-for="col in columns" :key="col.id">
+        <label class="hint" v-if="hiddenColumnCount" style="display:flex;align-items:center;gap:6px;margin:0 0 14px;cursor:pointer;">
+          <input type="checkbox" v-model="showHiddenInDialog"> Show {{ hiddenColumnCount }} hidden {{ hiddenColumnCount === 1 ? 'column' : 'columns' }}
+        </label>
+        <div class="field" v-for="col in dialogColumns" :key="col.id">
           <label>{{ col.name }}<span class="field-type">{{ typeLabels[col.type] }}</span></label>
           <field-editor :col="col" :values="form.values" :select-options="selectOptionsFor(col.id)" :next-id="col.type === 'id' ? nextIdValue(col) : ''"></field-editor>
         </div>
         <p v-if="!columns.length" class="hint" style="margin:0;">No columns defined yet — close this and use "Add Column" first.</p>
       </div>
       <div class="modal-foot">
-        <button class="btn" @click="closeDialog">Cancel</button>
+        <span class="hint" v-if="editingPosition" style="margin:0 auto 0 0;align-self:center;">{{ editingPosition }} of {{ filteredRows.length }}</span>
+        <button class="btn" @click="closeDialog">Close</button>
+        <button class="btn" :disabled="!hasNextRecord" @click="editNext" title="Save this record and go to the next one">Save &amp; Next</button>
         <button class="btn btn-primary" @click="saveEntry">Save Entry</button>
       </div>
     </div>
@@ -1336,6 +1341,9 @@ createApp({
     const columnVisOpen = ref(false);
     const visibleColumns = computed(() => columns.filter(c => !c.hidden));
     const hiddenColumnCount = computed(() => columns.length - visibleColumns.value.length);
+    // hidden columns are left out of the add/edit dialog unless the user opts in; their values are still kept on save
+    const showHiddenInDialog = ref(false);
+    const dialogColumns = computed(() => showHiddenInDialog.value ? columns : visibleColumns.value);
 
     const typeLabels = {
       text: 'Text', date: 'Date', datetime: 'Date & Time',
@@ -1733,6 +1741,17 @@ createApp({
       dialogOpen.value = true;
     }
     function closeDialog() { dialogOpen.value = false; }
+    const editingPosition = computed(() => {
+      if (editingKey.value === null) return 0;
+      return filteredRows.value.findIndex(r => r._key === editingKey.value) + 1;
+    });
+    const hasNextRecord = computed(() => editingPosition.value > 0 && editingPosition.value < filteredRows.value.length);
+    function editNext() {
+      if (!hasNextRecord.value) return;
+      const next = filteredRows.value[editingPosition.value];
+      saveEntry();
+      openEdit(next);
+    }
 
     /* ---- column resize ---- */
     function startResize(e, col) {
@@ -2192,16 +2211,19 @@ createApp({
     function saveEntry() {
       const values = {};
       columns.forEach(c => { values[c.id] = normalizeValueFor(c, form.values[c.id]); });
+      let row;
       if (editingKey.value === null) {
-        rows.push({ _key: nextKey(), values });
+        row = { _key: nextKey(), values };
+        rows.push(row);
         showToast('Entry added');
       } else {
-        const row = rows.find(r => r._key === editingKey.value);
+        row = rows.find(r => r._key === editingKey.value);
         if (row) row.values = values;
         showToast('Entry updated');
       }
       persist();
-      dialogOpen.value = false;
+      // stay open on the saved record so further saves update it instead of adding duplicates
+      if (row) openEdit(row);
     }
 
     function confirmDelete(row) { deleteTarget.value = row; }
@@ -2438,7 +2460,7 @@ createApp({
       tabFilterSourceValue, setTabFilterSource, tabFilterValueOptions, fixTabFilterOp, addTabFilter, removeTabFilter, clearTabFilters,
       openNewInstance,
       resetAllOpen, resetAll,
-      openAdd, openEdit, closeDialog, saveEntry, confirmDelete, doDelete,
+      showHiddenInDialog, dialogColumns, openAdd, openEdit, closeDialog, saveEntry, editingPosition, hasNextRecord, editNext, confirmDelete, doDelete,
       handleImport, startResize,
       sheets, activeSheetId, sheetContent, totalRowCount, hasExportableData, isBlankWorkbook, pendingImportRowCount,
       switchSheet, addSheet, sheetToDelete, confirmDeleteSheet,

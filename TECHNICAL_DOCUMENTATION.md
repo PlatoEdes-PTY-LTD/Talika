@@ -132,6 +132,9 @@ Search for function names. Do not use line numbers. The line numbers change.
 | `dragColId`, `dragOverColId` | refs | The drag state for column reorder. |
 | `columnVisOpen` | ref | The open flag of the Show / Hide Columns dialog. |
 | `visibleColumns`, `hiddenColumnCount` | computed | The columns without `hidden`, and the count of hidden columns. |
+| `showHiddenInDialog` | `ref(false)` | The **Show hidden columns** tick in the Add or Edit dialog. Kept while the page is open. Not saved. |
+| `dialogColumns` | computed | The fields of the Add or Edit dialog: `columns` when `showHiddenInDialog` is on, else `visibleColumns`. |
+| `editingPosition`, `hasNextRecord` | computed | The 1-based place of the edited row in `filteredRows` (0 when adding), and whether a next row exists. |
 | `changeTypeCol`, `changeTypeValue`, `changeTypePrefix` | refs | The state of the change-type dialog. |
 | `selected` | `reactive(Set)` | The `_key` values of the selected rows. Not saved. |
 | `bulkOpen`, `bulk`, `bulkCols`, `bulkIdKeep` | refs | The state of the bulk edit dialog. `bulkCols` holds the ticked column IDs. |
@@ -268,7 +271,7 @@ The app has no Save App button. The **Download App** link in the header of `inde
 - The toolbar buttons show an icon and no text. The text is in the `title` attribute (the tooltip) and in `aria-label`.
 - The selection bar buttons (**Edit selected**, **Clear selection**) are also icon-only.
 - The empty-state buttons (Add Entry, Add Column, Import Excel) are also icon-only.
-- The buttons in the dialogs keep their text (Cancel, Save Entry, Delete, and so on). The text shows the effect of a choice that the user cannot undo.
+- The buttons in the dialogs keep their text (Close, Save Entry, Save & Next, Delete, and so on). The text shows the effect of a choice that the user cannot undo.
 - Add Column uses a "columns with a plus" icon. Add Entry uses a plain plus icon.
 - When you add a toolbar button, give it a `title` and an `aria-label`. Do not use `title` twice on one element. For a dynamic tooltip, use `:title` only.
 - Playwright finds an icon-only button with `getByRole('button', { name: ... })`. The `aria-label` gives the name.
@@ -280,7 +283,7 @@ The app has no Save App button. The **Download App** link in the header of `inde
 
 The table renders only when `filteredRows.length > 0`. Otherwise the app shows the empty state.
 
-The header and body loop over `visibleColumns`, not `columns`. Code that works on data (search, filters, entry and bulk dialogs, import, export) still uses `columns`.
+The header and body loop over `visibleColumns`, not `columns`. Code that works on data (search, filters, bulk dialog, import, export) still uses `columns`. The entry dialog draws `dialogColumns`, but `saveEntry` still writes every column in `columns`.
 
 The table sits in `.table-wrap`. The `.table-wrap` is the scroll container. It scrolls up and down and left and right. Its height is limited (see 10.1). The header row is sticky at the top (see 10.4).
 
@@ -328,7 +331,10 @@ All dialogs use `.overlay` with `.modal`. A mouse-down on the overlay closes the
 | Reset all | `resetAllOpen` |
 
 - The Add or Edit dialog and the Bulk edit dialog draw each field with the `FieldEditor` component. It takes `col`, `values`, `selectOptions`, and `nextId`. It changes `values[col.id]` in place. If you add a column type, add its editor to `FieldEditor`.
-- The Add or Edit dialog shows one field for each column. Each label has a badge (`.field-type`) with the type name.
+- The Add or Edit dialog shows one field for each column in `dialogColumns`. Hidden columns are left out unless the user ticks **Show hidden columns** (shown only when `hiddenColumnCount > 0`). Each label has a badge (`.field-type`) with the type name.
+- **Save Entry** (`saveEntry`) saves and keeps the dialog open. It ends with `openEdit(row)`, so after an add the dialog edits the new row and a second save does not add a duplicate.
+- **Save & Next** (`editNext`) is disabled when adding or on the last row. It reads the next row from `filteredRows` first, then calls `saveEntry`, then `openEdit(next)`. Reading first keeps the right next row when the save moves the current row in the sort or filter.
+- The footer shows `editingPosition` of `filteredRows.length`. **Close** (`closeDialog`) closes without saving.
 - The Edit dialog copies values. For Link and List columns, `openEdit` makes deep copies. This prevents changes to the table before the user saves.
 
 ### 9.4 ID columns
@@ -368,7 +374,7 @@ All dialogs use `.overlay` with `.modal`. A mouse-down on the overlay closes the
 - A change applies at once. `setColumnHidden(col, hidden)` sets or deletes `col.hidden` and calls `persistColumns()`.
 - When a column is hidden, the app clears its filter, removes the tab filter conditions on it (`removeTabFiltersOn`), closes its filter popover, and clears the sort if it was the sort column. A filter or sort on a hidden column would change the table without a visible cause.
 - **Show All** runs `showAllColumns()`. The footer shows "N of M hidden" or "All columns shown".
-- Hidden columns stay in search (`cellSearchText`), the entry dialog, the bulk edit dialog, and the Excel export.
+- Hidden columns stay in search (`cellSearchText`), the bulk edit dialog, and the Excel export. The entry dialog shows them only when **Show hidden columns** is ticked (see 9.3).
 - An import with Replace gives new columns, so all are shown. An import with Merge keeps the `hidden` flag of existing columns.
 
 ### 9.8 More-columns button
@@ -512,6 +518,7 @@ No automated test suite exists. Each session writes short Playwright scripts. Ch
 | Confirm Add Column | `getByRole('button', { name: /^Add Column$/ }).last()` |
 | Add Entry text fields | `.overlay textarea` (for Text columns) |
 | Save entry | `getByRole('button', { name: /save entry/i })` |
+| Save and next | `getByRole('button', { name: /save & next/i })` |
 | Export confirm | `getByRole('button', { name: /^Export$/ })` |
 | Import a file | `page.setInputFiles('input[type=file]', path)` |
 | Header cells | `thead th.col-custom-th` |
@@ -591,6 +598,7 @@ No automated test suite exists. Each session writes short Playwright scripts. Ch
 | 29 | Save App button at the right corner of the header. It downloads the app as `talika.html`. Hidden when the app runs from the local disk. |
 | 30 | Tab filters: Add Tab Filter toolbar button after the Search box and a condition bar above the table. A condition compares a column of the shown sheet (contains, equals, greater, less, before, after, by type) with a column of another sheet, or with one value picked from it. All conditions must match. Kept per sheet with the view state; not saved. |
 | 31 | Save App is removed from the app. A Download App link in the `index.html` header, between Documentation and Open the app, downloads `talika.html` instead. |
+| 32 | Entry dialog: Save Entry keeps the dialog open. Save & Next saves and opens the next row in `filteredRows`, with an "N of M" counter. Cancel is renamed Close. Hidden columns are left out of the dialog unless **Show hidden columns** is ticked. |
 
 ---
 
