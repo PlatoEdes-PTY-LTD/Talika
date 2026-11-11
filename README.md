@@ -1,3 +1,5 @@
+<p align="center"><img src="webtalika-icon.svg" alt="WebTalika icon" width="96" height="96"></p>
+
 # WebTalika
 
 *The List*

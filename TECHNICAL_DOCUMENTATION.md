@@ -42,6 +42,7 @@ The app has no fixed schema. It runs in the browser from one HTML file. It works
 | --- | --- |
 | `talika.html` | The complete app. This is the main deliverable. |
 | `README.md` | The GitHub readme. |
+| `webtalika-icon.svg` | The app icon shown at the top of the readme. A copy of the SVG favicon in `talika.html`; update both together. |
 | `LICENSE` | MIT license. |
 | `TECHNICAL_DOCUMENTATION.md` | This document. |
 | `dynadoc-icon.svg`, `dynadoc-icon.ico`, `dynadoc-icon-512.png` | App icons. The HTML file also holds inline copies. |
