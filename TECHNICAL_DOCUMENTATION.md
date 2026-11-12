@@ -272,7 +272,7 @@ The app has no Save App button. The **Download App** link in the header of `inde
 - The toolbar buttons show an icon and no text. The text is in the `title` attribute (the tooltip) and in `aria-label`.
 - The selection bar buttons (**Edit selected**, **Clear selection**) are also icon-only.
 - The empty-state buttons (Add Entry, Add Column, Import Excel) are also icon-only.
-- The buttons in the dialogs keep their text (Close, Save Entry, Save & Next, Delete, and so on). The text shows the effect of a choice that the user cannot undo.
+- The buttons in the dialogs keep their text (Close, Save & Close, Save & Next, Delete, and so on). The text shows the effect of a choice that the user cannot undo.
 - Add Column uses a "columns with a plus" icon. Add Entry uses a plain plus icon.
 - When you add a toolbar button, give it a `title` and an `aria-label`. Do not use `title` twice on one element. For a dynamic tooltip, use `:title` only.
 - Playwright finds an icon-only button with `getByRole('button', { name: ... })`. The `aria-label` gives the name.
@@ -333,8 +333,8 @@ All dialogs use `.overlay` with `.modal`. A mouse-down on the overlay closes the
 
 - The Add or Edit dialog and the Bulk edit dialog draw each field with the `FieldEditor` component. It takes `col`, `values`, `selectOptions`, and `nextId`. It changes `values[col.id]` in place. If you add a column type, add its editor to `FieldEditor`.
 - The Add or Edit dialog shows one field for each column in `dialogColumns`. Hidden columns are left out unless the user ticks **Show hidden columns** (shown only when `hiddenColumnCount > 0`). Each label has a badge (`.field-type`) with the type name.
-- **Save Entry** (`saveEntry`) saves and keeps the dialog open. It ends with `openEdit(row)`, so after an add the dialog edits the new row and a second save does not add a duplicate.
-- **Save & Next** (`editNext`) is disabled when adding or on the last row. It reads the next row from `filteredRows` first, then calls `saveEntry`, then `openEdit(next)`. Reading first keeps the right next row when the save moves the current row in the sort or filter.
+- **Save & Close** (`saveAndClose`) calls `saveEntry`, which returns the saved row (or `null` when nothing was saved), and then closes the dialog.
+- **Save & Next** (`editNext`) reads the next row from `filteredRows` first, then calls `saveEntry`, then `openEdit(next)`. Reading first keeps the right next row when the save moves the current row in the sort or filter. When there is no next row (the last row, or adding), it calls `openAdd()` for a blank entry, which is added only when saved. `canSaveAndNext` disables the button only on the Index sheet's last row, since the Index takes no new rows.
 - The footer shows `editingPosition` of `filteredRows.length`. **Close** (`closeDialog`) closes without saving.
 - The Edit dialog copies values. For Link and List columns, `openEdit` makes deep copies. This prevents changes to the table before the user saves.
 
@@ -353,7 +353,7 @@ All dialogs use `.overlay` with `.modal`. A mouse-down on the overlay closes the
 - Selected rows get the class `is-selected`. A selection bar above the table shows the count and two icon-only buttons: **Edit selected** (pencil icon) and **Clear selection** (X icon).
 - Selection stays when the user searches or filters. The bar shows how many selected rows are hidden. Delete, reset, and an import with Replace remove rows from the selection.
 - **Edit selected** opens the Bulk edit dialog. The user ticks the columns to update. Unticked columns do not change.
-- `applyBulk` writes the entered value to every selected row for each ticked column. It uses `normalizeValueFor` (the same code as Save Entry) and copies the value for each row, so Link and List values are not shared.
+- `applyBulk` writes the entered value to every selected row for each ticked column. It uses `normalizeValueFor` (the same code as the entry dialog's save) and copies the value for each row, so Link and List values are not shared.
 - For a ticked ID column, the dialog has no value field. It gives each row the next free number in table order. The tick **Keep IDs that already exist** (default on) skips rows that already have an ID.
 
 ### 9.6 Change data type
@@ -601,9 +601,10 @@ No automated test suite exists. Each session writes short Playwright scripts. Ch
 | 28 | Clear (×) button inside the Search box. Esc in the box also clears it. |
 | 29 | Save App button at the right corner of the header. It downloads the app as `talika.html`. Hidden when the app runs from the local disk. |
 | 30 | Tab filters: Add Tab Filter toolbar button after the Search box and a condition bar above the table. A condition compares a column of the shown sheet (contains, equals, greater, less, before, after, by type) with a column of another sheet, or with one value picked from it. All conditions must match. Kept per sheet with the view state; not saved. |
-| 31 | Index tab: every document has an Index sheet, pinned first, with locked Name and Description (Text) columns and one row per other sheet, kept in sync. Names link to their sheet. Saved with `index: true`; an imported Index fills in descriptions instead of becoming a sheet. |
 | 31 | Save App is removed from the app. A Download App link in the `index.html` header, between Documentation and Open the app, downloads `talika.html` instead. |
 | 32 | Entry dialog: Save Entry keeps the dialog open. Save & Next saves and opens the next row in `filteredRows`, with an "N of M" counter. Cancel is renamed Close. Hidden columns are left out of the dialog unless **Show hidden columns** is ticked. |
+| 33 | Index tab: every document has an Index sheet, pinned first, with locked Name and Description (Text) columns and one row per other sheet, kept in sync. Names link to their sheet. Saved with `index: true`; an imported Index fills in descriptions instead of becoming a sheet. |
+| 34 | Entry dialog: Save Entry becomes **Save & Close** (saves and closes). **Save & Next** on the last row or when adding opens a blank new entry; it is disabled only on the Index sheet's last row. |
 
 ---
 

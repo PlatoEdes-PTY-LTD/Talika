@@ -50,7 +50,7 @@
 | List | array of `{ label, url }` | One pill per entry; add or remove entries freely |
 | ID | `PREFIX-number` string | Prefix set when the column is created; next number fills in automatically |
 
-The Add/Edit Entry dialog shows each field's type next to its label. **Save Entry** saves and keeps the dialog open, so you can keep editing the same entry. When editing, **Save & Next** saves the entry and opens the next one in the table's current order (search, filters, and sort included); a counter such as "3 of 10" shows where you are. **Close** shuts the dialog without saving.
+The Add/Edit Entry dialog shows each field's type next to its label. **Save & Close** saves the entry and closes the dialog. **Save & Next** saves the entry and opens the next one in the table's current order (search, filters, and sort included); a counter such as "3 of 10" shows where you are. On the last entry, or when adding, **Save & Next** opens a new, empty entry instead; it is added to the table only when you save it. **Close** shuts the dialog without saving.
 
 ### Changing a column's type
 

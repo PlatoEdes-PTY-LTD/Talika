@@ -646,8 +646,8 @@
       <div class="modal-foot">
         <span class="hint" v-if="editingPosition" style="margin:0 auto 0 0;align-self:center;">{{ editingPosition }} of {{ filteredRows.length }}</span>
         <button class="btn" @click="closeDialog">Close</button>
-        <button class="btn" :disabled="!hasNextRecord" @click="editNext" title="Save this record and go to the next one">Save &amp; Next</button>
-        <button class="btn btn-primary" @click="saveEntry">Save Entry</button>
+        <button class="btn" :disabled="!canSaveAndNext" @click="editNext" :title="hasNextRecord ? 'Save this entry and go to the next one' : (canSaveAndNext ? 'Save this entry and start a new, empty one' : 'This is the last entry')">Save &amp; Next</button>
+        <button class="btn btn-primary" @click="saveAndClose" title="Save this entry and close the dialog">Save &amp; Close</button>
       </div>
     </div>
   </div>
@@ -1871,11 +1871,18 @@ createApp({
       return filteredRows.value.findIndex(r => r._key === editingKey.value) + 1;
     });
     const hasNextRecord = computed(() => editingPosition.value > 0 && editingPosition.value < filteredRows.value.length);
+    // with no next row, Save & Next opens a blank entry, which the Index can't take
+    const canSaveAndNext = computed(() => hasNextRecord.value || !activeIsIndex.value);
     function editNext() {
-      if (!hasNextRecord.value) return;
-      const next = filteredRows.value[editingPosition.value];
-      saveEntry();
-      openEdit(next);
+      if (!canSaveAndNext.value) return;
+      // read the next row before saving: the save can move this row in the sort or filter
+      const next = hasNextRecord.value ? filteredRows.value[editingPosition.value] : null;
+      if (!saveEntry()) return;
+      if (next) openEdit(next);
+      else openAdd();
+    }
+    function saveAndClose() {
+      if (saveEntry()) closeDialog();
     }
 
     /* ---- column resize ---- */
@@ -2351,7 +2358,7 @@ createApp({
     }
 
     function saveEntry() {
-      if (editingKey.value === null && activeIsIndex.value) return;
+      if (editingKey.value === null && activeIsIndex.value) return null;
       const existing = editingKey.value === null ? null : rows.find(r => r._key === editingKey.value);
       const values = {};
       columns.forEach(c => {
@@ -2368,8 +2375,7 @@ createApp({
         showToast('Entry updated');
       }
       persist();
-      // stay open on the saved record so further saves update it instead of adding duplicates
-      if (row) openEdit(row);
+      return row || null;
     }
 
     function confirmDelete(row) { if (!activeIsIndex.value) deleteTarget.value = row; }
@@ -2623,7 +2629,7 @@ createApp({
       tabFilterSourceValue, setTabFilterSource, tabFilterValueOptions, fixTabFilterOp, addTabFilter, removeTabFilter, clearTabFilters,
       openNewInstance,
       resetAllOpen, resetAll,
-      showHiddenInDialog, dialogColumns, openAdd, openEdit, closeDialog, saveEntry, editingPosition, hasNextRecord, editNext, confirmDelete, doDelete,
+      showHiddenInDialog, dialogColumns, openAdd, openEdit, closeDialog, saveEntry, saveAndClose, editingPosition, hasNextRecord, canSaveAndNext, editNext, confirmDelete, doDelete,
       handleImport, startResize,
       sheets, activeSheetId, sheetContent, totalRowCount, activeIsIndex, contentSheetCount, openSheetByName, bulkColumns, hasExportableData, isBlankWorkbook, pendingImportRowCount,
       switchSheet, addSheet, sheetToDelete, confirmDeleteSheet,
