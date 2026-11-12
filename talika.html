@@ -102,6 +102,7 @@
   .totals-toggle-sign{font-size:16px;font-weight:700;line-height:1;}
   .btn-round.totals-toggle.is-on{background:var(--teal);border-color:var(--teal);color:#fff;}
   .btn-round.totals-toggle.is-on:hover{background:var(--teal-dark);border-color:var(--teal-dark);}
+  .format-default-row{margin-top:12px;}
   .format-col{padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px;}
   .format-col-head{display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:13px;min-width:0;}
   .format-col-head strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -733,7 +734,7 @@
         </button>
       </div>
       <div class="modal-body">
-        <p class="hint" style="margin:0 0 12px;">Choose how dates, times and numbers are shown in this sheet. Stored values do not change.</p>
+        <p class="hint" style="margin:0 0 12px;">Choose how dates, times and numbers are shown in this sheet, and the values new entries start with. Stored values do not change.</p>
         <div class="format-col" v-for="col in formattableColumns" :key="col.id">
           <div class="format-col-head">
             <strong>{{ col.name }}</strong><span class="field-type">{{ typeLabels[col.type] }}</span>
@@ -763,6 +764,26 @@
                 <option v-for="f in TIME_FORMATS" :key="f" :value="f">{{ timeFormatLabel(f) }}</option>
               </select>
             </div>
+          </div>
+          <div class="field-row format-default-row">
+            <div class="field" style="margin-bottom:0;" v-if="col.type === 'numerical'">
+              <label>Default for new entries</label>
+              <input type="number" step="any" v-model="formatDraft[col.id].defaultValue" placeholder="None">
+            </div>
+            <template v-else>
+              <div class="field" style="margin-bottom:0;">
+                <label>Default for new entries</label>
+                <select v-model="formatDraft[col.id].defaultMode">
+                  <option value="">None</option>
+                  <option :value="col.type === 'date' ? 'today' : 'now'">{{ col.type === 'date' ? 'Today' : 'Now' }}</option>
+                  <option value="value">{{ col.type === 'date' ? 'A specific date' : 'A specific date and time' }}</option>
+                </select>
+              </div>
+              <div class="field" style="margin-bottom:0;" v-if="formatDraft[col.id].defaultMode === 'value'">
+                <label>{{ col.type === 'date' ? 'Date' : 'Date and time' }}</label>
+                <input :type="col.type === 'date' ? 'date' : 'datetime-local'" v-model="formatDraft[col.id].defaultValue">
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -1463,6 +1484,15 @@ function timeFormatLabel(fmt) {
   return fmt === '24' ? `${formatTimeWith(FORMAT_SAMPLE_DATE, '24')} (24-hour)`
     : fmt === '12' ? `${formatTimeWith(FORMAT_SAMPLE_DATE, '12')} (12-hour)` : 'System default';
 }
+/* default for a new entry, set in the Format Columns dialog: saved on the
+   column as defaultMode ('today' for Date, 'now' for Date & Time, or
+   'value') and defaultValue (with 'value'). Returns null for no default. */
+function columnDefaultValue(col) {
+  if (col.defaultMode === 'today' && col.type === 'date') return toDateInputValue(new Date());
+  if (col.defaultMode === 'now' && col.type === 'datetime') return toDateTimeInputValue(new Date());
+  if (col.defaultMode === 'value' && col.defaultValue !== undefined && col.defaultValue !== null && col.defaultValue !== '') return col.defaultValue;
+  return null;
+}
 /* Excel number format for an exported Number column, or null for General */
 function excelNumberFormat(col) {
   if (col.decimals === null || col.decimals === undefined) return null;
@@ -1844,14 +1874,15 @@ createApp({
 
     /* ---- Format Columns dialog ---- */
     const formatOpen = ref(false);
-    const formatDraft = reactive({}); // colId -> { dateFormat, timeFormat, decimals, grouping }
+    const formatDraft = reactive({}); // colId -> { dateFormat, timeFormat, decimals, grouping, defaultMode, defaultValue }
     const formattableColumns = computed(() => columns.filter(c => c.type === 'date' || c.type === 'datetime' || c.type === 'numerical'));
     function openFormatDialog() {
       Object.keys(formatDraft).forEach(k => delete formatDraft[k]);
       formattableColumns.value.forEach(c => {
         formatDraft[c.id] = {
           dateFormat: c.dateFormat || '', timeFormat: c.timeFormat || '',
-          decimals: (c.decimals === undefined ? null : c.decimals), grouping: c.grouping !== false
+          decimals: (c.decimals === undefined ? null : c.decimals), grouping: c.grouping !== false,
+          defaultMode: c.defaultMode || '', defaultValue: c.defaultMode === 'value' && c.defaultValue != null ? c.defaultValue : ''
         };
       });
       formatOpen.value = true;
@@ -1877,6 +1908,18 @@ createApp({
         set('timeFormat', d.timeFormat, c.type === 'datetime' && !!d.timeFormat);
         set('decimals', d.decimals, c.type === 'numerical' && d.decimals !== null);
         set('grouping', false, c.type === 'numerical' && d.grouping === false);
+        // default for new entries
+        let mode = '', value;
+        if (c.type === 'numerical') {
+          const n = (d.defaultValue === '' || d.defaultValue === null) ? NaN : Number(d.defaultValue);
+          if (isFinite(n)) { mode = 'value'; value = n; }
+        } else if (d.defaultMode === 'value') {
+          if (d.defaultValue) { mode = 'value'; value = d.defaultValue; }
+        } else if (d.defaultMode === (c.type === 'date' ? 'today' : 'now')) {
+          mode = d.defaultMode;
+        }
+        set('defaultMode', mode, !!mode);
+        set('defaultValue', value, mode === 'value');
       });
       persist();
       formatOpen.value = false;
@@ -2050,7 +2093,11 @@ createApp({
       if (!columns.length || activeIsIndex.value) return; // Index rows follow the tabs
       editingKey.value = null;
       form.values = emptyValues();
-      columns.forEach(c => { if (c.type === 'id') form.values[c.id] = nextIdValue(c); });
+      columns.forEach(c => {
+        if (c.type === 'id') { form.values[c.id] = nextIdValue(c); return; }
+        const v = columnDefaultValue(c);
+        if (v !== null) form.values[c.id] = v;
+      });
       dialogOpen.value = true;
     }
     function openEdit(row) {
@@ -2228,6 +2275,7 @@ createApp({
       if (toType !== 'date' && toType !== 'datetime') delete col.dateFormat;
       if (toType !== 'datetime') delete col.timeFormat;
       if (toType !== 'numerical') { delete col.decimals; delete col.grouping; }
+      delete col.defaultMode; delete col.defaultValue; // a default for the old type may not fit
       delete columnFilters[col.id];
       if (openFilterColId.value === col.id) openFilterColId.value = null;
       tabFilters.forEach(rule => { if (rule.colId === col.id) fixTabFilterOp(rule); });

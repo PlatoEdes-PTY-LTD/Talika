@@ -392,7 +392,8 @@ All dialogs use `.overlay` with `.modal`. A mouse-down on the overlay closes the
 - Formats are saved on the column, only when they differ from the default: `dateFormat` (Date and Date & Time: `iso`, `dmy`, `mdy`, `dmony`, `mondy`, `long`; missing means `toLocaleDateString()`), `timeFormat` (Date & Time: `24`, `12`), `decimals` (Number: 0 to 6; missing means auto), and `grouping: false` (Number: no thousands separator).
 - `formatColumnValue` uses `formatDateWith`, `formatTimeWith`, and `formatNumberWith`. A Date & Time column with neither format keeps `toLocaleString()`. `formatTotal(col, n)` uses the column's decimals and grouping.
 - The dialog edits `formatDraft` (one entry per column) and writes it to the columns only on **Apply** (`applyFormats`); Cancel discards it. `formatPreview(col)` shows the column's first non-empty value, or a sample, in the draft format. Option labels show the sample date 25 March 2026 14:30 (`dateFormatLabel`, `timeFormatLabel`).
-- Changing a column's type (`confirmChangeType`) drops the formats that do not fit the new type.
+- **Defaults for new entries.** The dialog also sets `defaultMode` on the column: `today` (Date), `now` (Date & Time), or `value` with `defaultValue` (a number, `YYYY-MM-DD`, or `YYYY-MM-DDTHH:mm`). A Number column has only a number box; empty means no default. `openAdd` fills each column from `columnDefaultValue(col)`, which works out Today and Now when the form opens. Defaults apply only to the Add Entry form, not to imports, bulk edit, or new columns.
+- Changing a column's type (`confirmChangeType`) drops the formats that do not fit the new type, and always drops the default.
 - Export: `excelNumberFormat(col)` gives `0.00`, `#,##0.00`, and so on, when `decimals` is set; `buildWorksheet` puts it on the numeric cells as `z`. Date formats are not exported.
 
 ### 9.8b Number totals
@@ -628,6 +629,7 @@ No automated test suite exists. Each session writes short Playwright scripts. Ch
 | 40 | The Format Columns button and the Show totals row checkbox move from the actions column header to the toolbar, before the search box; both are disabled when they do not apply. The search box is narrower (up to 320px, at least 180px). The actions column is back to 80px. |
 | 41 | The search box grows again to take the free space in the toolbar (`flex: 1 1 320px; min-width: 180px`), so the toolbar spans the table width. |
 | 42 | The totals toggle is a round Σ button instead of a checkbox; it is filled teal while the totals row is shown. |
+| 43 | Defaults for new entries in the Format Columns dialog: a number (Number), Today or a date (Date), Now or a date and time (Date & Time). Saved on the column as `defaultMode` and `defaultValue`; used by `openAdd`. |
 
 ---
 
