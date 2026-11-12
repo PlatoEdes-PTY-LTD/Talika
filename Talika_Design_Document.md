@@ -57,6 +57,8 @@ Set and List both let the user type a brand-new value — there's no fixed optio
 
 Like an Excel workbook, one document holds several sheets, shown as tabs under the table. Each sheet has its own columns, entries, search, sort and filters. The **+** button adds a sheet; double-clicking a tab renames it (Excel's rules apply: at most 31 characters, none of `: \ / ? * [ ]`, and no two sheets share a name); tabs can be dragged to reorder; and a right-click menu offers Rename, Duplicate and Delete.
 
+Every document has an **Index** sheet, pinned as the first tab. It has two locked Text columns, Name and Description, and one row per other sheet in tab order. `syncIndex()` rebuilds the rows after every add, rename, duplicate, delete, reorder and import, matching rows to sheets by name so descriptions are kept. Names are read-only and link to their sheet. The Index can't be renamed, moved, duplicated or deleted; Add Entry and row Delete are off on it. A document always keeps at least one sheet besides the Index.
+
 The shown sheet's data lives in the reactive `columns` and `rows` arrays, so every feature works on it directly. The other sheets keep their data on their own entry in `sheets` until they are switched to. Switching moves the old sheet's data and view state (search, sort, column filters, tab filters) onto its entry and loads the new sheet's.
 
 ### Tab filters

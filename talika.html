@@ -123,6 +123,12 @@
   .sheet-tab:focus-visible{outline:2px solid var(--teal);outline-offset:-2px;}
   .sheet-tab.active{background:var(--panel);color:var(--teal-dark);font-weight:600;border-top-color:var(--panel);box-shadow:inset 0 -2px 0 var(--teal);position:relative;z-index:1;}
   .sheet-tab.is-dragging{opacity:0.4;}
+  .sheet-tab.is-index{cursor:pointer;}
+  .sheet-tab-icon{vertical-align:-1px;margin-right:5px;}
+  .index-link{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--teal-dark);cursor:pointer;text-align:left;text-decoration:underline;text-decoration-color:transparent;}
+  .index-link:hover{text-decoration-color:currentColor;}
+  .index-name-field{padding:8px 10px;border:1px solid var(--line, #dfe5e3);border-radius:8px;background:#f4f7f6;font-weight:600;display:flex;flex-direction:column;gap:4px;}
+  .index-name-field .hint{font-weight:400;margin:0;}
   .sheet-tab.is-drag-over{box-shadow:inset 2px 0 0 var(--teal);}
   .sheet-tab-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .sheet-tab-input{
@@ -381,7 +387,7 @@
 
   <div class="main-col">
   <div class="toolbar">
-    <button class="btn btn-primary" :disabled="!columns.length" :title="!columns.length ? 'Add Entry (add a column first)' : 'Add Entry'" @click="openAdd" aria-label="Add Entry">
+    <button class="btn btn-primary" :disabled="!columns.length || activeIsIndex" :title="activeIsIndex ? 'The Index lists every tab: add a tab to add a row' : (!columns.length ? 'Add Entry (add a column first)' : 'Add Entry')" @click="openAdd" aria-label="Add Entry">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
     <button class="btn" @click="openAddColumn" aria-label="Add Column" title="Add Column">
@@ -508,11 +514,11 @@
               <input v-if="renamingColId === col.id" type="text" class="col-rename-input" v-model="renameDraft" draggable="false"
                 @blur="commitRename(col)" @keydown.enter.prevent="commitRename(col)" @keydown.esc="cancelRename"
                 @click.stop @mousedown.stop ref="renameInputs">
-              <span v-else class="col-name" :title="typeLabels[col.type] + ' — double-click to rename, drag to reorder'" @dblclick="startRename(col)">{{ col.name }}</span>
+              <span v-else class="col-name" :title="typeLabels[col.type] + (col.locked ? ' — Index column: can\'t be renamed, retyped or removed' : ' — double-click to rename, drag to reorder')" @dblclick="startRename(col)">{{ col.name }}</span>
               <button type="button" class="col-filter-btn" draggable="false" :class="{active: hasActiveFilter(col.id)}" @click.stop="toggleFilterPopover($event, col)" :title="filterTitle(col)">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12"/></svg>
               </button>
-              <div class="col-head-actions" draggable="false" v-if="renamingColId !== col.id">
+              <div class="col-head-actions" draggable="false" v-if="renamingColId !== col.id && !col.locked">
                 <button type="button" class="col-type-btn" title="Change data type" @click="openChangeType(col)">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
                 </button>
@@ -558,6 +564,7 @@
               <template v-else>—</template>
             </span>
             <span v-else-if="col.type === 'id'" class="id-chip">{{ row.values[col.id] || '—' }}</span>
+            <button v-else-if="col.indexName && row.values[col.id]" type="button" class="index-link" :title="'Go to tab ' + row.values[col.id]" @click="openSheetByName(row.values[col.id])">{{ row.values[col.id] }}</button>
             <span v-else-if="col.type === 'text'" class="cell-excerpt">{{ row.values[col.id] || '—' }}</span>
             <span v-else>{{ formatColumnValue(col, row.values[col.id]) }}</span>
           </td>
@@ -566,7 +573,7 @@
             <button class="icon-btn" title="Edit" @click="openEdit(row)">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
-            <button class="icon-btn danger" title="Delete" @click="confirmDelete(row)">
+            <button class="icon-btn danger" v-if="!activeIsIndex" title="Delete" @click="confirmDelete(row)">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
             </button>
           </td>
@@ -582,7 +589,7 @@
       <p v-else>Try a different search term.</p>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
         <button class="btn" v-if="rows.length && activeFilterCount" @click="clearAllFilters">Clear Filters</button>
-        <button class="btn btn-primary" v-if="!rows.length && columns.length" @click="openAdd" title="Add Entry" aria-label="Add Entry"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <button class="btn btn-primary" v-if="!rows.length && columns.length && !activeIsIndex" @click="openAdd" title="Add Entry" aria-label="Add Entry"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
         <button class="btn" v-if="!rows.length" @click="openAddColumn" title="Add Column" aria-label="Add Column"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="13" height="16" rx="2"/><line x1="9.5" y1="4" x2="9.5" y2="20"/><line x1="19.5" y1="9" x2="19.5" y2="15"/><line x1="16.5" y1="12" x2="22.5" y2="12"/></svg></button>
         <button class="btn" v-if="!rows.length && !columns.length" @click="$refs.fileInput.click()" title="Import Excel" aria-label="Import Excel"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
       </div>
@@ -591,16 +598,16 @@
 
   <div class="sheet-tabs" role="tablist" aria-label="Sheets">
     <div v-for="s in sheets" :key="s.id" class="sheet-tab" role="tab" tabindex="0"
-      :class="{ active: s.id === activeSheetId, 'is-dragging': dragSheetId === s.id, 'is-drag-over': dragOverSheetId === s.id && dragSheetId !== s.id }"
+      :class="{ active: s.id === activeSheetId, 'is-index': s.isIndex, 'is-dragging': dragSheetId === s.id, 'is-drag-over': dragOverSheetId === s.id && dragSheetId !== s.id }"
       :aria-selected="s.id === activeSheetId ? 'true' : 'false'"
-      :title="s.name + ' — double-click to rename, right-click for more, drag to reorder'"
-      :draggable="renamingSheetId !== s.id"
+      :title="s.isIndex ? 'Index — lists every tab in this document' : s.name + ' — double-click to rename, right-click for more, drag to reorder'"
+      :draggable="!s.isIndex && renamingSheetId !== s.id"
       @click="switchSheet(s.id)" @keydown.enter="switchSheet(s.id)" @dblclick="startSheetRename(s)" @contextmenu.prevent="openSheetMenu($event, s)"
       @dragstart="onSheetDragStart($event, s)" @dragover.prevent="onSheetDragOver(s)" @drop.prevent="onSheetDrop(s)" @dragend="onSheetDragEnd">
       <input v-if="renamingSheetId === s.id" type="text" class="sheet-tab-input" v-model="sheetRenameDraft" maxlength="31" ref="sheetRenameInputs"
         @blur="commitSheetRename(s)" @keydown.enter.prevent.stop="commitSheetRename(s)" @keydown.esc.stop="renamingSheetId = null"
         @click.stop @dblclick.stop @mousedown.stop>
-      <span v-else class="sheet-tab-name">{{ s.name }}</span>
+      <span v-else class="sheet-tab-name"><svg v-if="s.isIndex" class="sheet-tab-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>{{ s.name }}</span>
     </div>
     <button type="button" class="icon-btn sheet-add-btn" title="New sheet" aria-label="New sheet" @click="addSheet">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -608,9 +615,9 @@
   </div>
   <teleport to="body">
     <div class="sheet-menu" v-if="sheetMenu" :style="sheetMenu.style" @mousedown.stop>
-      <button type="button" @click="menuSheetAction('rename')">Rename</button>
-      <button type="button" @click="menuSheetAction('duplicate')">Duplicate</button>
-      <button type="button" class="danger" :disabled="sheets.length === 1" :title="sheets.length === 1 ? 'A document needs at least one sheet' : ''" @click="menuSheetAction('delete')">Delete</button>
+      <button type="button" :disabled="sheetMenu.sheet.isIndex" :title="sheetMenu.sheet.isIndex ? 'The Index tab can\'t be renamed' : ''" @click="menuSheetAction('rename')">Rename</button>
+      <button type="button" :disabled="sheetMenu.sheet.isIndex" :title="sheetMenu.sheet.isIndex ? 'The Index tab can\'t be duplicated' : ''" @click="menuSheetAction('duplicate')">Duplicate</button>
+      <button type="button" class="danger" :disabled="sheetMenu.sheet.isIndex || contentSheetCount === 1" :title="sheetMenu.sheet.isIndex ? 'The Index tab can\'t be deleted' : (contentSheetCount === 1 ? 'A document needs at least one sheet besides the Index' : '')" @click="menuSheetAction('delete')">Delete</button>
     </div>
   </teleport>
   </div>
@@ -631,7 +638,8 @@
         </label>
         <div class="field" v-for="col in dialogColumns" :key="col.id">
           <label>{{ col.name }}<span class="field-type">{{ typeLabels[col.type] }}</span></label>
-          <field-editor :col="col" :values="form.values" :select-options="selectOptionsFor(col.id)" :next-id="col.type === 'id' ? nextIdValue(col) : ''"></field-editor>
+          <div v-if="col.indexName" class="index-name-field">{{ form.values[col.id] }}<span class="hint">Matches the tab name. Rename the tab to change it.</span></div>
+          <field-editor v-else :col="col" :values="form.values" :select-options="selectOptionsFor(col.id)" :next-id="col.type === 'id' ? nextIdValue(col) : ''"></field-editor>
         </div>
         <p v-if="!columns.length" class="hint" style="margin:0;">No columns defined yet — close this and use "Add Column" first.</p>
       </div>
@@ -655,7 +663,7 @@
       </div>
       <div class="modal-body">
         <p class="hint" style="margin:0 0 12px;">Tick the columns you want to update. Columns you leave unticked do not change.</p>
-        <div class="bulk-field" v-for="col in columns" :key="col.id" :class="{ on: bulkCols[col.id] }">
+        <div class="bulk-field" v-for="col in bulkColumns" :key="col.id" :class="{ on: bulkCols[col.id] }">
           <label class="bulk-check">
             <input type="checkbox" v-model="bulkCols[col.id]">
             <span>{{ col.name }}</span><span class="field-type" style="margin-left:0;">{{ typeLabels[col.type] }}</span>
@@ -888,7 +896,7 @@
       <div class="modal-body">
         <p style="margin:0 0 4px;">
           This will permanently delete all <strong>{{ sheets.length }}</strong> {{ sheets.length === 1 ? 'sheet' : 'sheets' }}
-          and every entry and column in them (<strong>{{ totalRowCount }}</strong> {{ totalRowCount === 1 ? 'entry' : 'entries' }}) — leaving a single blank sheet.
+          and every entry and column in them (<strong>{{ totalRowCount }}</strong> {{ totalRowCount === 1 ? 'entry' : 'entries' }}) — leaving the Index and a single blank sheet.
         </p>
         <p style="margin:0;color:var(--ink-soft);font-size:12.5px;">This can't be undone.</p>
       </div>
@@ -1203,8 +1211,65 @@ function makeSheet(name, cols, rawRows) {
     name,
     columns: sheetCols,
     rows: (rawRows || []).map(r => ({ _key: nextKey(), values: { ...emptyValuesFor(sheetCols), ...(r.values || {}) } })),
-    view: null // search, sort and filters, kept while another sheet is shown
+    view: null, // search, sort and filters, kept while another sheet is shown
+    isIndex: false // the document's Index sheet (see ensureIndexSheet)
   });
+}
+
+/* ---- the Index sheet ----
+   Every document has one Index sheet, pinned as the first tab. It holds one
+   row per other sheet: Name (the sheet's name, kept in sync, read-only) and
+   Description (free text). Both columns are locked: they can't be renamed,
+   retyped or removed. Other columns may be added. */
+const INDEX_SHEET_NAME = 'Index';
+const INDEX_NAME_COL = 'name';
+const INDEX_DESC_COL = 'description';
+function indexColumns() {
+  return [
+    { id: INDEX_NAME_COL, name: 'Name', type: 'text', width: 220, locked: true, indexName: true },
+    { id: INDEX_DESC_COL, name: 'Description', type: 'text', width: 420, locked: true }
+  ];
+}
+function sameSheetName(a, b) {
+  return String(a == null ? '' : a).trim().toLowerCase() === String(b == null ? '' : b).trim().toLowerCase();
+}
+/* makes `list` (sheets not yet shown) start with exactly one Index sheet
+   that has its two locked columns */
+function ensureIndexSheet(list) {
+  let index = list.find(s => s.isIndex);
+  list.forEach(s => { if (s !== index) s.isIndex = false; });
+  if (!index) {
+    const clash = list.find(s => sameSheetName(s.name, INDEX_SHEET_NAME));
+    if (clash) clash.name = uniqueName(INDEX_SHEET_NAME, n => list.some(s => sameSheetName(s.name, n)));
+    index = makeSheet(INDEX_SHEET_NAME, indexColumns(), []);
+    index.isIndex = true;
+  } else {
+    list.splice(list.indexOf(index), 1);
+    index.name = INDEX_SHEET_NAME;
+    indexColumns().forEach((def, i) => {
+      const col = index.columns.find(c => c.id === def.id);
+      if (col) { col.type = 'text'; col.locked = true; if (def.indexName) col.indexName = true; return; }
+      index.columns.splice(i, 0, def);
+      index.rows.forEach(r => { r.values[def.id] = ''; });
+    });
+  }
+  list.unshift(index);
+  return list;
+}
+/* an imported worksheet that is a WebTalika Index (exported earlier):
+   returns its descriptions as Map(lower-case sheet name -> description) */
+function readIndexDescriptions(imp) {
+  if (!sameSheetName(imp.name, INDEX_SHEET_NAME)) return null;
+  const nameCol = imp.columns.find(c => sameSheetName(c.name, 'Name'));
+  const descCol = imp.columns.find(c => sameSheetName(c.name, 'Description'));
+  if (!nameCol || !descCol) return null;
+  const map = new Map();
+  imp.rows.forEach(r => {
+    const n = String(r.values[nameCol.id] == null ? '' : r.values[nameCol.id]).trim();
+    const d = r.values[descCol.id];
+    if (n) map.set(n.toLowerCase(), d == null ? '' : String(d));
+  });
+  return map;
 }
 /* Excel sheet names: at most 31 characters, none of : \ / ? * [ ], no leading or trailing apostrophe */
 function cleanSheetName(name) {
@@ -1368,9 +1433,63 @@ createApp({
     function sheetContent(s) {
       return s.id === activeSheetId.value ? { columns, rows } : { columns: s.columns, rows: s.rows };
     }
-    const totalRowCount = computed(() => sheets.reduce((n, s) => n + sheetContent(s).rows.length, 0));
-    const hasExportableData = computed(() => sheets.some(s => sheetContent(s).columns.length));
-    const isBlankWorkbook = computed(() => sheets.length <= 1 && !columns.length && !rows.length);
+    const indexSheet = computed(() => sheets.find(s => s.isIndex) || null);
+    const activeIsIndex = computed(() => !!(activeSheet.value && activeSheet.value.isIndex));
+    const contentSheetCount = computed(() => sheets.filter(s => !s.isIndex).length);
+    const totalRowCount = computed(() => sheets.reduce((n, s) => n + (s.isIndex ? 0 : sheetContent(s).rows.length), 0));
+    const hasExportableData = computed(() => sheets.some(s => !s.isIndex && sheetContent(s).columns.length));
+    const isBlankWorkbook = computed(() => {
+      const content = sheets.filter(s => !s.isIndex);
+      if (content.length > 1) return false;
+      if (content.length) {
+        const c = sheetContent(content[0]);
+        if (c.columns.length || c.rows.length) return false;
+      }
+      if (!indexSheet.value) return true;
+      const ic = sheetContent(indexSheet.value);
+      return ic.columns.length <= 2 && ic.rows.every(r => !r.values[INDEX_DESC_COL]);
+    });
+
+    /* rebuilds the Index rows: one per other sheet, in tab order. Rows are
+       matched to sheets by name, so descriptions survive; `renamed`
+       ({ from, to }) carries a description across a sheet rename. */
+    function syncIndex(renamed) {
+      const index = indexSheet.value;
+      if (!index) return;
+      const c = sheetContent(index);
+      if (renamed) {
+        const r = c.rows.find(r => sameSheetName(r.values[INDEX_NAME_COL], renamed.from));
+        if (r) r.values[INDEX_NAME_COL] = renamed.to;
+      }
+      const pool = c.rows.slice();
+      const next = sheets.filter(s => !s.isIndex).map(s => {
+        const i = pool.findIndex(r => sameSheetName(r.values[INDEX_NAME_COL], s.name));
+        if (i === -1) return { _key: nextKey(), values: { ...emptyValuesFor(c.columns), [INDEX_NAME_COL]: s.name } };
+        const row = pool.splice(i, 1)[0];
+        row.values[INDEX_NAME_COL] = s.name;
+        return row;
+      });
+      if (index.id === activeSheetId.value) pool.forEach(r => selected.delete(r._key));
+      c.rows.splice(0, c.rows.length, ...next);
+    }
+    function indexRowFor(name) {
+      const index = indexSheet.value;
+      return index ? sheetContent(index).rows.find(r => sameSheetName(r.values[INDEX_NAME_COL], name)) : null;
+    }
+    /* fills Index descriptions from an imported Index (see readIndexDescriptions);
+       `rename` maps an imported sheet name (lower case) to the name it got here */
+    function applyIndexDescriptions(map, { onlyEmpty = false, rename = null } = {}) {
+      if (!map) return;
+      map.forEach((desc, lowerName) => {
+        const row = indexRowFor(rename && rename.has(lowerName) ? rename.get(lowerName) : lowerName);
+        if (!row || (onlyEmpty && row.values[INDEX_DESC_COL])) return;
+        row.values[INDEX_DESC_COL] = desc;
+      });
+    }
+    function openSheetByName(name) {
+      const s = sheets.find(s => !s.isIndex && sameSheetName(s.name, name));
+      if (s) switchSheet(s.id);
+    }
 
     function persist() {
       try {
@@ -1378,7 +1497,9 @@ createApp({
           active: sheets.findIndex(s => s.id === activeSheetId.value),
           sheets: sheets.map(s => {
             const c = sheetContent(s);
-            return { name: s.name, columns: c.columns, rows: c.rows.map(({ values }) => ({ values })) };
+            const out = { name: s.name, columns: c.columns, rows: c.rows.map(({ values }) => ({ values })) };
+            if (s.isIndex) out.index = true;
+            return out;
           })
         };
         localStorage.setItem(SHEETS_KEY, JSON.stringify(data));
@@ -1397,7 +1518,11 @@ createApp({
         try { legacyRows = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch (e) { /* ignore corrupt storage */ }
         saved = { active: 0, sheets: [{ name: 'Sheet1', columns: cols, rows: legacyRows }] };
       }
-      loadSheets(saved.sheets.map((s, i) => makeSheet(cleanSheetName(s.name) || ('Sheet' + (i + 1)), s.columns, s.rows)), saved.active);
+      loadSheets(saved.sheets.map((s, i) => {
+        const sheet = makeSheet(cleanSheetName(s.name) || ('Sheet' + (i + 1)), s.columns, s.rows);
+        if (s.index) sheet.isIndex = true;
+        return sheet;
+      }), saved.active);
       try {
         const name = localStorage.getItem(FILE_NAME_KEY);
         if (name) currentFileName.value = name;
@@ -1720,7 +1845,7 @@ createApp({
 
     /* ---- dialog open/close ---- */
     function openAdd() {
-      if (!columns.length) return;
+      if (!columns.length || activeIsIndex.value) return; // Index rows follow the tabs
       editingKey.value = null;
       form.values = emptyValues();
       columns.forEach(c => { if (c.type === 'id') form.values[c.id] = nextIdValue(c); });
@@ -1778,6 +1903,7 @@ createApp({
 
     /* ---- column rename ---- */
     function startRename(col) {
+      if (col.locked) return;
       renamingColId.value = col.id;
       renameDraft.value = col.name;
       nextTick(() => {
@@ -1855,6 +1981,7 @@ createApp({
     const changeTypeValue = ref('text');
     const changeTypePrefix = ref('');
     function openChangeType(col) {
+      if (col.locked) return;
       changeTypeCol.value = col;
       changeTypeValue.value = col.type;
       changeTypePrefix.value = col.prefix || '';
@@ -1895,7 +2022,7 @@ createApp({
       showToast(`Changed "${col.name}" to ${typeLabels[toType]}`);
       changeTypeCol.value = null;
     }
-    function removeColumn(col) { columnToRemove.value = col; }
+    function removeColumn(col) { if (!col.locked) columnToRemove.value = col; }
     function cancelRemoveColumn() { columnToRemove.value = null; }
     function confirmRemoveColumn() {
       const col = columnToRemove.value;
@@ -1970,9 +2097,13 @@ createApp({
       tabFilters.splice(0, tabFilters.length, ...(view.tabFilters || []));
       nextTick(() => { if (tableWrap.value) tableWrap.value.scrollTo(0, 0); });
     }
+    /* `activeIdx` indexes `list` as given; an Index sheet is added if it has none */
     function loadSheets(list, activeIdx) {
-      sheets.splice(0, sheets.length, ...list);
-      activateSheet(sheets[activeIdx] || sheets[0]);
+      if (!list.some(s => !s.isIndex)) list = [...list, makeSheet('Sheet1', [], [])];
+      const target = list[activeIdx] || list.find(s => !s.isIndex) || list[0];
+      sheets.splice(0, sheets.length, ...ensureIndexSheet(list.slice()));
+      activateSheet(target || sheets[0]);
+      syncIndex();
     }
     function switchSheet(id) {
       if (id === activeSheetId.value) return;
@@ -1996,20 +2127,25 @@ createApp({
       stashActiveSheet();
       sheets.push(sheet);
       activateSheet(sheet);
+      syncIndex();
       persist();
     }
     function duplicateSheet(sheet) {
+      if (sheet.isIndex) return;
       const c = JSON.parse(JSON.stringify(sheetContent(sheet)));
       const copy = makeSheet(uniqueSheetName(sheet.name), c.columns, c.rows);
       stashActiveSheet();
       sheets.splice(sheets.findIndex(s => s.id === sheet.id) + 1, 0, copy);
       activateSheet(copy);
+      syncIndex();
+      const from = indexRowFor(sheet.name), to = indexRowFor(copy.name);
+      if (from && to) to.values[INDEX_DESC_COL] = from.values[INDEX_DESC_COL];
       persist();
       showToast(`Duplicated "${sheet.name}" as "${copy.name}"`);
     }
     const sheetToDelete = ref(null);
     function requestDeleteSheet(sheet) {
-      if (sheets.length <= 1) return;
+      if (sheet.isIndex || contentSheetCount.value <= 1) return;
       const c = sheetContent(sheet);
       if (c.columns.length || c.rows.length) sheetToDelete.value = sheet;
       else deleteSheet(sheet);
@@ -2020,10 +2156,11 @@ createApp({
     }
     function deleteSheet(sheet) {
       const idx = sheets.findIndex(s => s.id === sheet.id);
-      if (idx === -1 || sheets.length <= 1) return;
+      if (idx === -1 || sheet.isIndex || contentSheetCount.value <= 1) return;
       const wasActive = sheet.id === activeSheetId.value;
       sheets.splice(idx, 1);
       if (wasActive) activateSheet(sheets[Math.min(idx, sheets.length - 1)]);
+      syncIndex();
       persist();
       showToast(`Deleted sheet "${sheet.name}"`);
     }
@@ -2032,6 +2169,7 @@ createApp({
     const sheetRenameDraft = ref('');
     const sheetRenameInputs = ref([]);
     function startSheetRename(sheet) {
+      if (sheet.isIndex) return;
       renamingSheetId.value = sheet.id;
       sheetRenameDraft.value = sheet.name;
       nextTick(() => {
@@ -2046,7 +2184,9 @@ createApp({
       const name = cleanSheetName(typed);
       if (!name || name === sheet.name) return;
       if (sheetNameTaken(name, sheet.id)) { showToast(`A sheet named "${name}" already exists`); return; }
+      const oldName = sheet.name;
       sheet.name = name;
+      syncIndex({ from: oldName, to: name });
       persist();
       showToast(name === typed ? `Renamed sheet to "${name}"` : `Renamed sheet to "${name}" (sheet names can't contain : \\ / ? * [ ])`);
     }
@@ -2070,7 +2210,7 @@ createApp({
     const dragSheetId = ref(null);
     const dragOverSheetId = ref(null);
     function onSheetDragStart(e, sheet) {
-      if (renamingSheetId.value === sheet.id) { e.preventDefault(); return; }
+      if (sheet.isIndex || renamingSheetId.value === sheet.id) { e.preventDefault(); return; }
       dragSheetId.value = sheet.id;
       try {
         e.dataTransfer.effectAllowed = 'move';
@@ -2078,17 +2218,18 @@ createApp({
       } catch (err) { /* some browsers restrict dataTransfer — drag still works via state */ }
     }
     function onSheetDragOver(sheet) {
-      if (dragSheetId.value && dragSheetId.value !== sheet.id) dragOverSheetId.value = sheet.id;
+      if (dragSheetId.value && dragSheetId.value !== sheet.id && !sheet.isIndex) dragOverSheetId.value = sheet.id;
     }
     function onSheetDrop(sheet) {
       const fromId = dragSheetId.value;
       onSheetDragEnd();
-      if (!fromId || fromId === sheet.id) return;
+      if (!fromId || fromId === sheet.id || sheet.isIndex) return; // the Index stays first
       const fromIdx = sheets.findIndex(s => s.id === fromId);
       const toIdx = sheets.findIndex(s => s.id === sheet.id);
-      if (fromIdx === -1 || toIdx === -1) return;
+      if (fromIdx === -1 || toIdx === -1 || sheets[fromIdx].isIndex) return;
       const [moved] = sheets.splice(fromIdx, 1);
       sheets.splice(toIdx, 0, moved);
+      syncIndex();
       persist();
     }
     function onSheetDragEnd() {
@@ -2177,7 +2318,8 @@ createApp({
     const bulk = reactive({ values: {} });
     const bulkCols = reactive({});
     const bulkIdKeep = ref(true);
-    const bulkColumnCount = computed(() => columns.filter(c => bulkCols[c.id]).length);
+    const bulkColumns = computed(() => columns.filter(c => !c.indexName)); // Index names follow the tabs
+    const bulkColumnCount = computed(() => bulkColumns.value.filter(c => bulkCols[c.id]).length);
     function openBulk() {
       if (!selectedRows.value.length || !columns.length) return;
       bulk.values = emptyValues();
@@ -2187,7 +2329,7 @@ createApp({
     }
     function closeBulk() { bulkOpen.value = false; }
     function applyBulk() {
-      const cols = columns.filter(c => bulkCols[c.id]);
+      const cols = bulkColumns.value.filter(c => bulkCols[c.id]);
       const targets = orderedSelected();
       if (!cols.length || !targets.length) return;
       cols.forEach(c => {
@@ -2209,8 +2351,12 @@ createApp({
     }
 
     function saveEntry() {
+      if (editingKey.value === null && activeIsIndex.value) return;
+      const existing = editingKey.value === null ? null : rows.find(r => r._key === editingKey.value);
       const values = {};
-      columns.forEach(c => { values[c.id] = normalizeValueFor(c, form.values[c.id]); });
+      columns.forEach(c => {
+        values[c.id] = (c.indexName && existing) ? existing.values[c.id] : normalizeValueFor(c, form.values[c.id]);
+      });
       let row;
       if (editingKey.value === null) {
         row = { _key: nextKey(), values };
@@ -2226,7 +2372,7 @@ createApp({
       if (row) openEdit(row);
     }
 
-    function confirmDelete(row) { deleteTarget.value = row; }
+    function confirmDelete(row) { if (!activeIsIndex.value) deleteTarget.value = row; }
     function doDelete() {
       const idx = rows.findIndex(r => r._key === deleteTarget.value._key);
       selected.delete(deleteTarget.value._key);
@@ -2352,22 +2498,39 @@ createApp({
       const { fileName, sheets: impSheets } = pendingImport.value;
       const n = pendingImportRowCount.value;
       const rowsLabel = `${n} row${n === 1 ? '' : 's'}`;
+      // an Index exported earlier is not added as a sheet; its descriptions fill this document's Index
+      let descriptions = null;
+      const dataSheets = impSheets.filter(s => {
+        const d = readIndexDescriptions(s);
+        if (d) descriptions = d;
+        return !d;
+      });
       if (mode === 'replace') {
-        loadSheets(impSheets.map(s => makeSheet(s.name, s.columns, s.rows)), 0);
+        loadSheets(dataSheets.map(s => makeSheet(s.name, s.columns, s.rows)), 0);
+        applyIndexDescriptions(descriptions);
         showToast(`Replaced existing data with ${rowsLabel} from ${fileName}`);
       } else if (mode === 'new') {
         stashActiveSheet();
         const first = sheets.length;
-        impSheets.forEach(s => sheets.push(makeSheet(uniqueSheetName(s.name), s.columns, s.rows)));
-        activateSheet(sheets[first]);
-        showToast(`Added ${impSheets.length} sheet${impSheets.length === 1 ? '' : 's'} with ${rowsLabel} from ${fileName}`);
+        const rename = new Map();
+        dataSheets.forEach(s => {
+          const sheet = makeSheet(uniqueSheetName(s.name), s.columns, s.rows);
+          rename.set(s.name.toLowerCase(), sheet.name);
+          sheets.push(sheet);
+        });
+        activateSheet(sheets[first] || sheets[sheets.length - 1]);
+        syncIndex();
+        applyIndexDescriptions(descriptions, { rename });
+        showToast(`Added ${dataSheets.length} sheet${dataSheets.length === 1 ? '' : 's'} with ${rowsLabel} from ${fileName}`);
       } else {
-        impSheets.forEach(is => {
-          const target = sheets.find(s => s.name.toLowerCase() === is.name.toLowerCase());
+        dataSheets.forEach(is => {
+          const target = sheets.find(s => !s.isIndex && s.name.toLowerCase() === is.name.toLowerCase());
           if (!target) { sheets.push(makeSheet(uniqueSheetName(is.name), is.columns, is.rows)); return; }
           const c = sheetContent(target);
           mergeRowsInto(c.columns, c.rows, is.columns, is.rows);
         });
+        syncIndex();
+        applyIndexDescriptions(descriptions, { onlyEmpty: true });
         showToast(`Added ${rowsLabel} from ${fileName}`);
       }
       currentFileName.value = fileName;
@@ -2462,7 +2625,7 @@ createApp({
       resetAllOpen, resetAll,
       showHiddenInDialog, dialogColumns, openAdd, openEdit, closeDialog, saveEntry, editingPosition, hasNextRecord, editNext, confirmDelete, doDelete,
       handleImport, startResize,
-      sheets, activeSheetId, sheetContent, totalRowCount, hasExportableData, isBlankWorkbook, pendingImportRowCount,
+      sheets, activeSheetId, sheetContent, totalRowCount, activeIsIndex, contentSheetCount, openSheetByName, bulkColumns, hasExportableData, isBlankWorkbook, pendingImportRowCount,
       switchSheet, addSheet, sheetToDelete, confirmDeleteSheet,
       renamingSheetId, sheetRenameDraft, sheetRenameInputs, startSheetRename, commitSheetRename,
       sheetMenu, openSheetMenu, menuSheetAction,

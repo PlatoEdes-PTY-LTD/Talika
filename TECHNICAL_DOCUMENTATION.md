@@ -393,7 +393,10 @@ All dialogs use `.overlay` with `.modal`. A mouse-down on the overlay closes the
 - **Rename.** Double-click a tab, or use the context menu. `cleanSheetName()` applies the Excel rules: at most 31 characters, none of `: \ / ? * [ ]`. A name that another sheet has (ignoring case) is refused with a toast.
 - **Context menu.** Right-click a tab to open `.sheet-menu` (teleported to `body`, opens upwards): Rename, Duplicate, Delete. Delete is disabled on the only sheet. Delete asks for confirmation only when the sheet has columns or rows.
 - **Reorder.** Drag a tab onto another tab (`onSheetDragStart`, `onSheetDrop`).
-- **Reset All** leaves a single blank `Sheet1`.
+- **Reset All** leaves the Index and a single blank `Sheet1`.
+- **Index sheet.** Every document has one sheet with `isIndex: true`, saved as `index: true`. `loadSheets()` calls `ensureIndexSheet(list)`, which adds it (renaming any other sheet called "Index"), moves it first, and makes sure it has the locked columns `name` (`indexName: true`) and `description`, both Text with `locked: true`. `loadSheets()` also adds `Sheet1` when no other sheet is left. `syncIndex(renamed?)` rebuilds the Index rows, one per other sheet in tab order, matching by name (case-insensitive) so descriptions survive; `renamed` (`{ from, to }`) carries a description across a rename. It runs after add, duplicate (the copy gets the source's description), delete, rename, reorder, and import.
+- **Index rules.** Locked columns hide the rename, change-type, and remove buttons (`startRename`, `openChangeType`, and `removeColumn` return early). The Name cell is a `.index-link` button that calls `openSheetByName`. On the Index, Add Entry is disabled and rows have no Delete button. The entry dialog shows the name as read-only text and `saveEntry` keeps the stored name; the bulk dialog lists `bulkColumns`, which leaves the name out. The Index tab is not draggable, not a drop target, and its Rename, Duplicate, and Delete menu items are disabled. Delete on another sheet is disabled when it is the only one left (`contentSheetCount`).
+- **Index import and export.** Export writes the Index as a normal worksheet. On import, `readIndexDescriptions()` recognizes a worksheet named "Index" with Name and Description columns; it is not added as a sheet, and `applyIndexDescriptions()` copies its descriptions into the Index (Replace All: all of them; Add as New Sheets: following the new sheet names; Merge: only into empty descriptions). Its other columns are not imported.
 
 ### 9.10 Tab filters (filter across sheets)
 
@@ -598,6 +601,7 @@ No automated test suite exists. Each session writes short Playwright scripts. Ch
 | 28 | Clear (×) button inside the Search box. Esc in the box also clears it. |
 | 29 | Save App button at the right corner of the header. It downloads the app as `talika.html`. Hidden when the app runs from the local disk. |
 | 30 | Tab filters: Add Tab Filter toolbar button after the Search box and a condition bar above the table. A condition compares a column of the shown sheet (contains, equals, greater, less, before, after, by type) with a column of another sheet, or with one value picked from it. All conditions must match. Kept per sheet with the view state; not saved. |
+| 31 | Index tab: every document has an Index sheet, pinned first, with locked Name and Description (Text) columns and one row per other sheet, kept in sync. Names link to their sheet. Saved with `index: true`; an imported Index fills in descriptions instead of becoming a sheet. |
 | 31 | Save App is removed from the app. A Download App link in the `index.html` header, between Documentation and Open the app, downloads `talika.html` instead. |
 | 32 | Entry dialog: Save Entry keeps the dialog open. Save & Next saves and opens the next row in `filteredRows`, with an "N of M" counter. Cancel is renamed Close. Hidden columns are left out of the dialog unless **Show hidden columns** is ticked. |
 
