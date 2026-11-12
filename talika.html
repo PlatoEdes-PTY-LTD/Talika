@@ -57,7 +57,7 @@
 
   /* ---------- toolbar ---------- */
   .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
-  .search-wrap{position:relative;flex:1 1 30%;min-width:30%;}
+  .search-wrap{position:relative;flex:1 1 320px;min-width:180px;}
   .search-wrap input{
     width:100%;padding:9px 34px 9px 34px;border:1px solid var(--line);border-radius:var(--radius);
     background:var(--panel);font-size:13px;color:var(--ink);
@@ -99,6 +99,13 @@
   .btn-round.has-filters:hover{filter:brightness(.92);}
   .btn-round.has-filters .btn-count{color:var(--amber);border-color:var(--amber);}
   .col-vis-list{display:flex;flex-direction:column;gap:6px;}
+  .totals-toggle-sign{font-size:16px;font-weight:700;line-height:1;}
+  .btn-round.totals-toggle.is-on{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .btn-round.totals-toggle.is-on:hover{background:var(--teal-dark);border-color:var(--teal-dark);}
+  .format-col{padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px;}
+  .format-col-head{display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:13px;min-width:0;}
+  .format-col-head strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .format-preview{margin-left:auto;padding:2px 8px;border-radius:6px;background:var(--line-soft);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;}
   .col-vis-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius);cursor:pointer;font-size:13px;}
   .col-vis-item:hover{border-color:#b7c2c8;}
   .col-vis-item.is-hidden{background:var(--danger-tint);border-color:#efc4c4;color:var(--ink-soft);}
@@ -158,6 +165,12 @@
   tbody td{padding:12px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top;font-size:13px;max-width:0;}
   tbody tr:last-child td{border-bottom:none;}
   tbody tr:hover{background:#fafcfb;}
+  tfoot td{position:sticky;bottom:0;z-index:2;background:#eef2f1;border-top:1px solid var(--line);padding:9px 14px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;}
+  tfoot td.col-select{left:0;z-index:3;box-shadow:1px 0 0 var(--line);}
+  tfoot td.col-actions{right:0;z-index:3;background:#eef2f1;box-shadow:-1px 0 0 var(--line);}
+  .col-total{color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  .col-total strong{color:var(--ink);font-weight:600;}
+  .col-total.is-partial strong{color:var(--amber);}
   .col-actions-th{position:sticky;right:0;z-index:3;background:#eef2f1;box-shadow:-1px 0 0 var(--line);}
   td.col-actions{position:sticky;right:0;z-index:1;background:var(--panel);box-shadow:-1px 0 0 var(--line-soft);}
   tbody tr:hover td.col-actions{background:#fafcfb;}
@@ -404,6 +417,15 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="3 4 17 4 11.5 11 11.5 18 8.5 20 8.5 11"/><line x1="15" y1="14" x2="21" y2="20" stroke-linecap="round"/><line x1="21" y1="14" x2="15" y2="20" stroke-linecap="round"/></svg>
       <span class="btn-count" v-if="activeFilterCount">{{ activeFilterCount }}</span>
     </button>
+    <button class="btn btn-round" :disabled="!formattableColumns.length" @click="openFormatDialog" aria-label="Format Columns"
+      :title="formattableColumns.length ? 'Format Columns: how dates, times and numbers are shown' : 'Format Columns: this sheet has no Date, Date & Time or Number columns'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2" fill="var(--panel)"/><circle cx="15" cy="12" r="2" fill="var(--panel)"/><circle cx="8" cy="18" r="2" fill="var(--panel)"/></svg>
+    </button>
+    <button class="btn btn-round totals-toggle" :class="{ 'is-on': hasNumberTotals }" :disabled="!hasNumberColumns"
+      @click="setTotalsShown(!hasNumberTotals)" :aria-pressed="hasNumberTotals ? 'true' : 'false'" aria-label="Show totals row"
+      :title="!hasNumberColumns ? 'Show totals row: this sheet has no Number columns' : (hasNumberTotals ? 'Hide totals row (the sum of each Number column)' : 'Show totals row (the sum of each Number column)')">
+      <span class="totals-toggle-sign" aria-hidden="true">&Sigma;</span>
+    </button>
     <div class="search-wrap">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" v-model="search" placeholder="Search…" @keydown.esc="search = ''">
@@ -579,6 +601,20 @@
           </td>
         </tr>
       </tbody>
+      <tfoot v-if="hasNumberTotals">
+        <tr>
+          <td class="col-select"></td>
+          <td v-for="col in visibleColumns" :key="col.id">
+            <span v-if="numberTotals[col.id]" class="col-total" :class="{ 'is-partial': numberTotals[col.id].partial }"
+              :title="numberTotals[col.id].partial ? `Sum of the ${filteredRows.length} shown entries / sum of all ${rows.length} entries` : `Sum of all ${rows.length} entries`">
+              <template v-if="numberTotals[col.id].partial"><strong>{{ formatTotal(col, numberTotals[col.id].shown) }}</strong> / {{ formatTotal(col, numberTotals[col.id].all) }}</template>
+              <strong v-else>{{ formatTotal(col, numberTotals[col.id].all) }}</strong>
+            </span>
+          </td>
+          <td></td>
+          <td class="col-actions"></td>
+        </tr>
+      </tfoot>
     </table>
 
     <div class="empty-state" v-else>
@@ -683,6 +719,56 @@
         <span class="hint" style="margin:0 auto 0 0;">{{ bulkColumnCount }} {{ bulkColumnCount === 1 ? 'column' : 'columns' }} ticked</span>
         <button class="btn" @click="closeBulk">Cancel</button>
         <button class="btn btn-primary" :disabled="!bulkColumnCount" @click="applyBulk">Apply to {{ selectedRows.length }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Format columns modal -->
+  <div class="overlay" v-if="formatOpen" @mousedown.self="formatOpen = false">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Format Columns</h2>
+        <button class="icon-btn" @click="formatOpen = false">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="hint" style="margin:0 0 12px;">Choose how dates, times and numbers are shown in this sheet. Stored values do not change.</p>
+        <div class="format-col" v-for="col in formattableColumns" :key="col.id">
+          <div class="format-col-head">
+            <strong>{{ col.name }}</strong><span class="field-type">{{ typeLabels[col.type] }}</span>
+            <span class="format-preview" title="Preview">{{ formatPreview(col) }}</span>
+          </div>
+          <div class="field-row" v-if="col.type === 'numerical'">
+            <div class="field" style="margin-bottom:0;">
+              <label>Decimal places</label>
+              <select v-model="formatDraft[col.id].decimals">
+                <option v-for="d in DECIMAL_CHOICES" :key="String(d)" :value="d">{{ d === null ? 'Auto (as entered)' : d }}</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;align-self:flex-end;">
+              <label class="bulk-check" style="font-weight:500;text-transform:none;letter-spacing:0;padding-bottom:9px;"><input type="checkbox" v-model="formatDraft[col.id].grouping"> Thousands separator</label>
+            </div>
+          </div>
+          <div class="field-row" v-else>
+            <div class="field" style="margin-bottom:0;">
+              <label>Date</label>
+              <select v-model="formatDraft[col.id].dateFormat">
+                <option v-for="f in DATE_FORMATS" :key="f" :value="f">{{ dateFormatLabel(f) }}</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0;" v-if="col.type === 'datetime'">
+              <label>Time</label>
+              <select v-model="formatDraft[col.id].timeFormat">
+                <option v-for="f in TIME_FORMATS" :key="f" :value="f">{{ timeFormatLabel(f) }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" @click="formatOpen = false">Cancel</button>
+        <button class="btn btn-primary" @click="applyFormats">Apply</button>
       </div>
     </div>
   </div>
@@ -1339,6 +1425,50 @@ function inferColumn(name, cellValues, cellLinkTargets) {
   return 'text';
 }
 
+/* ---- display formats (Date, Date & Time, Number columns) ----
+   Saved on the column: dateFormat, timeFormat, decimals (null = auto),
+   grouping (false = no thousands separator). They change only how values
+   are shown, never the stored values. */
+const DATE_FORMATS = ['', 'iso', 'dmy', 'mdy', 'dmony', 'mondy', 'long'];
+const TIME_FORMATS = ['', '24', '12'];
+const DECIMAL_CHOICES = [null, 0, 1, 2, 3, 4, 5, 6];
+const FORMAT_SAMPLE_DATE = new Date(2026, 2, 25, 14, 30); // day > 12, so day/month order is visible
+function pad2(n) { return String(n).padStart(2, '0'); }
+function formatDateWith(d, fmt) {
+  const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+  const mon = () => d.toLocaleDateString(undefined, { month: 'short' });
+  switch (fmt) {
+    case 'iso': return `${y}-${pad2(m)}-${pad2(day)}`;
+    case 'dmy': return `${pad2(day)}/${pad2(m)}/${y}`;
+    case 'mdy': return `${pad2(m)}/${pad2(day)}/${y}`;
+    case 'dmony': return `${pad2(day)} ${mon()} ${y}`;
+    case 'mondy': return `${mon()} ${day}, ${y}`;
+    case 'long': return d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    default: return d.toLocaleDateString();
+  }
+}
+function formatTimeWith(d, fmt) {
+  if (fmt === '24') return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  if (fmt === '12') return `${d.getHours() % 12 || 12}:${pad2(d.getMinutes())} ${d.getHours() < 12 ? 'AM' : 'PM'}`;
+  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+function formatNumberWith(n, decimals, grouping) {
+  const opts = { useGrouping: grouping !== false };
+  if (decimals !== null && decimals !== undefined) { opts.minimumFractionDigits = decimals; opts.maximumFractionDigits = decimals; }
+  return n.toLocaleString(undefined, opts);
+}
+const DATE_FORMAT_NAMES = { '': 'System default', iso: 'year-month-day', dmy: 'day/month/year', mdy: 'month/day/year', dmony: 'day month year', mondy: 'month day, year', long: 'long' };
+function dateFormatLabel(fmt) { return `${formatDateWith(FORMAT_SAMPLE_DATE, fmt)} (${DATE_FORMAT_NAMES[fmt]})`; }
+function timeFormatLabel(fmt) {
+  return fmt === '24' ? `${formatTimeWith(FORMAT_SAMPLE_DATE, '24')} (24-hour)`
+    : fmt === '12' ? `${formatTimeWith(FORMAT_SAMPLE_DATE, '12')} (12-hour)` : 'System default';
+}
+/* Excel number format for an exported Number column, or null for General */
+function excelNumberFormat(col) {
+  if (col.decimals === null || col.decimals === undefined) return null;
+  return (col.grouping === false ? '0' : '#,##0') + (col.decimals > 0 ? '.' + '0'.repeat(col.decimals) : '');
+}
+
 const FieldEditor = {
   components: { ComboBox },
   props: { col: Object, values: Object, selectOptions: Array, nextId: String },
@@ -1499,6 +1629,7 @@ createApp({
             const c = sheetContent(s);
             const out = { name: s.name, columns: c.columns, rows: c.rows.map(({ values }) => ({ values })) };
             if (s.isIndex) out.index = true;
+            if (s.hideTotals) out.hideTotals = true;
             return out;
           })
         };
@@ -1521,6 +1652,7 @@ createApp({
       loadSheets(saved.sheets.map((s, i) => {
         const sheet = makeSheet(cleanSheetName(s.name) || ('Sheet' + (i + 1)), s.columns, s.rows);
         if (s.index) sheet.isIndex = true;
+        if (s.hideTotals) sheet.hideTotals = true;
         return sheet;
       }), saved.active);
       try {
@@ -1682,6 +1814,74 @@ createApp({
       const n = Number(v);
       return isFinite(n) ? n : null;
     }
+    /* Number column sums for the table footer: `shown` over the entries left
+       by search and filters, `all` over every entry in the sheet */
+    const numberTotals = computed(() => {
+      const out = {};
+      const partial = filteredRows.value.length !== rows.length;
+      const sum = (list, id) => list.reduce((n, r) => { const v = toNumber(r.values[id]); return v === null ? n : n + v; }, 0);
+      visibleColumns.value.forEach(c => {
+        if (c.type !== 'numerical') return;
+        const all = sum(rows, c.id);
+        out[c.id] = { all, shown: partial ? sum(filteredRows.value, c.id) : all, partial };
+      });
+      return out;
+    });
+    const hasNumberColumns = computed(() => Object.keys(numberTotals.value).length > 0);
+    // per sheet: the totals row can be switched off in the Format Columns dialog
+    const hasNumberTotals = computed(() => hasNumberColumns.value && !(activeSheet.value && activeSheet.value.hideTotals));
+    function setTotalsShown(show) {
+      const sheet = activeSheet.value;
+      if (!sheet) return;
+      if (show) delete sheet.hideTotals; else sheet.hideTotals = true;
+      persist();
+    }
+    function formatTotal(col, n) {
+      if (col.decimals !== null && col.decimals !== undefined) return formatNumberWith(n, col.decimals, col.grouping);
+      // round away floating-point noise such as 0.1 + 0.2
+      return formatNumberWith(Math.round(n * 1e9) / 1e9, null, col.grouping);
+    }
+
+    /* ---- Format Columns dialog ---- */
+    const formatOpen = ref(false);
+    const formatDraft = reactive({}); // colId -> { dateFormat, timeFormat, decimals, grouping }
+    const formattableColumns = computed(() => columns.filter(c => c.type === 'date' || c.type === 'datetime' || c.type === 'numerical'));
+    function openFormatDialog() {
+      Object.keys(formatDraft).forEach(k => delete formatDraft[k]);
+      formattableColumns.value.forEach(c => {
+        formatDraft[c.id] = {
+          dateFormat: c.dateFormat || '', timeFormat: c.timeFormat || '',
+          decimals: (c.decimals === undefined ? null : c.decimals), grouping: c.grouping !== false
+        };
+      });
+      formatOpen.value = true;
+    }
+    function draftColumn(col) {
+      const d = formatDraft[col.id] || {};
+      return { ...col, ...d };
+    }
+    /* the column's first value (or a sample) shown with the draft format */
+    function formatPreview(col) {
+      const r = rows.find(r => !isEmptyValue(col.type, r.values[col.id]));
+      let v = r ? r.values[col.id] : null;
+      if (v === null) v = col.type === 'numerical' ? 1234.5678 : col.type === 'date' ? '2026-03-25' : '2026-03-25T14:30';
+      return formatColumnValue(draftColumn(col), v);
+    }
+    function applyFormats() {
+      formattableColumns.value.forEach(c => {
+        const d = formatDraft[c.id];
+        if (!d) return;
+        const set = (key, value, keep) => { if (keep) c[key] = value; else delete c[key]; };
+        const isDate = c.type === 'date' || c.type === 'datetime';
+        set('dateFormat', d.dateFormat, isDate && !!d.dateFormat);
+        set('timeFormat', d.timeFormat, c.type === 'datetime' && !!d.timeFormat);
+        set('decimals', d.decimals, c.type === 'numerical' && d.decimals !== null);
+        set('grouping', false, c.type === 'numerical' && d.grouping === false);
+      });
+      persist();
+      formatOpen.value = false;
+      showToast('Column formats updated');
+    }
     function toTime(v) {
       const t = v ? Date.parse(v) : NaN;
       return isNaN(t) ? null : t;
@@ -1830,15 +2030,17 @@ createApp({
       if (typeof val === 'object') return '—';
       if (col.type === 'date') {
         const d = new Date(val + 'T00:00:00');
-        return isNaN(d) ? val : d.toLocaleDateString();
+        return isNaN(d) ? val : formatDateWith(d, col.dateFormat || '');
       }
       if (col.type === 'datetime') {
         const d = new Date(val);
-        return isNaN(d) ? val : d.toLocaleString();
+        if (isNaN(d)) return val;
+        if (!col.dateFormat && !col.timeFormat) return d.toLocaleString();
+        return formatDateWith(d, col.dateFormat || '') + ' ' + formatTimeWith(d, col.timeFormat || '');
       }
       if (col.type === 'numerical') {
         const n = Number(val);
-        return isNaN(n) ? val : n.toLocaleString();
+        return isNaN(n) ? val : formatNumberWith(n, col.decimals, col.grouping);
       }
       return val;
     }
@@ -2022,6 +2224,10 @@ createApp({
       rows.forEach(r => { r.values[col.id] = convertValue(fromType, toType, r.values[col.id], opts); });
       col.type = toType;
       if (toType === 'id') col.prefix = opts.prefix; else delete col.prefix;
+      // keep only the display formats that fit the new type
+      if (toType !== 'date' && toType !== 'datetime') delete col.dateFormat;
+      if (toType !== 'datetime') delete col.timeFormat;
+      if (toType !== 'numerical') { delete col.decimals; delete col.grouping; }
       delete columnFilters[col.id];
       if (openFilterColId.value === col.id) openFilterColId.value = null;
       tabFilters.forEach(rule => { if (rule.colId === col.id) fixTabFilterOp(rule); });
@@ -2578,6 +2784,13 @@ createApp({
       const ws = XLSX.utils.aoa_to_sheet([cols.map(c => c.name), ...sheetRows.map(r => cols.map(col => cellValue(col, r.values[col.id])))]);
       ws['!cols'] = cols.map(() => ({ wch: 22 }));
       cols.forEach((col, ci) => {
+        const z = col.type === 'numerical' ? excelNumberFormat(col) : null;
+        if (z) {
+          sheetRows.forEach((r, ri) => {
+            const cell = ws[XLSX.utils.encode_cell({ r: ri + 1, c: ci })];
+            if (cell && cell.t === 'n') cell.z = z;
+          });
+        }
         if (col.type !== 'hyperlink') return;
         sheetRows.forEach((r, ri) => {
           const v = r.values[col.id];
@@ -2631,6 +2844,9 @@ createApp({
       resetAllOpen, resetAll,
       showHiddenInDialog, dialogColumns, openAdd, openEdit, closeDialog, saveEntry, saveAndClose, editingPosition, hasNextRecord, canSaveAndNext, editNext, confirmDelete, doDelete,
       handleImport, startResize,
+      numberTotals, hasNumberTotals, formatTotal,
+      formatOpen, formatDraft, hasNumberColumns, setTotalsShown, formattableColumns, openFormatDialog, formatPreview, applyFormats,
+      DATE_FORMATS, TIME_FORMATS, DECIMAL_CHOICES, dateFormatLabel, timeFormatLabel,
       sheets, activeSheetId, sheetContent, totalRowCount, activeIsIndex, contentSheetCount, openSheetByName, bulkColumns, hasExportableData, isBlankWorkbook, pendingImportRowCount,
       switchSheet, addSheet, sheetToDelete, confirmDeleteSheet,
       renamingSheetId, sheetRenameDraft, sheetRenameInputs, startSheetRename, commitSheetRename,

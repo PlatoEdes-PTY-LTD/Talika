@@ -266,7 +266,7 @@ The page header (`.page-head`) has the app name, tagline, and entry count on the
 
 The app has no Save App button. The **Download App** link in the header of `index.html` (between Documentation and Open the app) downloads the app instead. It is a plain `<a href="talika.html" download="talika.html">`, with no script.
 
-- The Search box (`.search-wrap`) takes the free space. Its CSS is `flex: 1 1 30%; min-width: 30%`. It is at least 30 percent of the toolbar width. The toolbar wraps on a narrow screen.
+- The Search box (`.search-wrap`) takes the free space, so the toolbar spans the table width. Its CSS is `flex: 1 1 320px; min-width: 180px`: it grows to fill the row and shrinks to 180px. The toolbar wraps on a narrow screen.
 - The toolbar has no spacer. The Search box fills the gap.
 - A round × button (`.search-clear`) shows inside the Search box while it has text. A click, or Esc in the box, clears the search.
 - The toolbar buttons show an icon and no text. The text is in the `title` attribute (the tooltip) and in `aria-label`.
@@ -385,6 +385,21 @@ All dialogs use `.overlay` with `.modal`. A mouse-down on the overlay closes the
 - `updateMoreCols()` sets `hasMoreRight`. It runs on the `scroll` event of `.table-wrap`, on the window `resize` event, and from a `ResizeObserver` on `.table-wrap` and on its `table`. The observer callback uses `requestAnimationFrame`. This prevents the browser error "ResizeObserver loop completed with undelivered notifications". A 300 ms timer also runs `updateMoreCols()`. The timer finds a new `table` element after the empty state changes.
 - A click runs `scrollMoreCols()`. It scrolls `.table-wrap` to the right by 80 percent of its visible width (at least 200 px).
 - The button does not change the width of the header cell. The button does not depend on any column name.
+
+### 9.8a Column formats
+
+- The **Format Columns** button is a round toolbar button just before the search box, after Clear Filters. It is disabled when the shown sheet has no Date, Date & Time, or Number column (`formattableColumns`).
+- Formats are saved on the column, only when they differ from the default: `dateFormat` (Date and Date & Time: `iso`, `dmy`, `mdy`, `dmony`, `mondy`, `long`; missing means `toLocaleDateString()`), `timeFormat` (Date & Time: `24`, `12`), `decimals` (Number: 0 to 6; missing means auto), and `grouping: false` (Number: no thousands separator).
+- `formatColumnValue` uses `formatDateWith`, `formatTimeWith`, and `formatNumberWith`. A Date & Time column with neither format keeps `toLocaleString()`. `formatTotal(col, n)` uses the column's decimals and grouping.
+- The dialog edits `formatDraft` (one entry per column) and writes it to the columns only on **Apply** (`applyFormats`); Cancel discards it. `formatPreview(col)` shows the column's first non-empty value, or a sample, in the draft format. Option labels show the sample date 25 March 2026 14:30 (`dateFormatLabel`, `timeFormatLabel`).
+- Changing a column's type (`confirmChangeType`) drops the formats that do not fit the new type.
+- Export: `excelNumberFormat(col)` gives `0.00`, `#,##0.00`, and so on, when `decimals` is set; `buildWorksheet` puts it on the numeric cells as `z`. Date formats are not exported.
+
+### 9.8b Number totals
+
+- The table has a `tfoot` row (`v-if="hasNumberTotals"`: the sheet has a visible Number column, `hasNumberColumns`, and the sheet's `hideTotals` flag is not set). The round toolbar button `.totals-toggle` (a Σ sign; the tooltip says "Show totals row" or "Hide totals row") sits between the Format Columns button and the search box. It is filled teal (`.is-on`, `aria-pressed="true"`) while the totals row is shown, and disabled when the sheet has no visible Number column. A click calls `setTotalsShown`, which sets or clears `hideTotals` on the shown sheet and saves at once. `persist` saves it as `hideTotals: true` on the sheet, and `loadPersisted` restores it that is sticky at the bottom of `.table-wrap`, like the sticky header. Its select and actions cells are sticky left and right.
+- `numberTotals` (computed) maps each visible Number column's id to `{ all, shown, partial }`: `all` sums `rows`, `shown` sums `filteredRows` (search, column filters, and tab filters applied), and `partial` is true when `filteredRows` is shorter than `rows`. Values go through `toNumber`, so empty and non-numeric cells are skipped.
+- The cell shows `all`, or `shown / all` when `partial` (shown in amber, `.col-total.is-partial`). `formatTotal` rounds to 9 decimal places to drop floating-point noise and formats with `toLocaleString`.
 
 ### 9.9 Sheets (tabs)
 
@@ -605,6 +620,14 @@ No automated test suite exists. Each session writes short Playwright scripts. Ch
 | 32 | Entry dialog: Save Entry keeps the dialog open. Save & Next saves and opens the next row in `filteredRows`, with an "N of M" counter. Cancel is renamed Close. Hidden columns are left out of the dialog unless **Show hidden columns** is ticked. |
 | 33 | Index tab: every document has an Index sheet, pinned first, with locked Name and Description (Text) columns and one row per other sheet, kept in sync. Names link to their sheet. Saved with `index: true`; an imported Index fills in descriptions instead of becoming a sheet. |
 | 34 | Entry dialog: Save Entry becomes **Save & Close** (saves and closes). **Save & Next** on the last row or when adding opens a blank new entry; it is disabled only on the Index sheet's last row. |
+| 35 | Number totals: a sticky footer row shows the sum of each visible Number column; with search or filters active it shows the shown sum / the total of all entries. |
+| 36 | Format Columns: a button at the top right opens a dialog to set date formats (Date, Date & Time), time formats (Date & Time), and decimal places and thousands separator (Number), per column. Saved on the column; display only; Excel export uses the decimal places. |
+| 37 | The Format Columns button moves from the page header to the header of the actions column. |
+| 38 | **Show totals row** checkbox in the Format Columns dialog hides or shows the totals row, per sheet (saved as `hideTotals`). |
+| 39 | The Show totals row checkbox moves from the Format Columns dialog to the actions column header, with no label (the text is in the tooltip). It applies at once. |
+| 40 | The Format Columns button and the Show totals row checkbox move from the actions column header to the toolbar, before the search box; both are disabled when they do not apply. The search box is narrower (up to 320px, at least 180px). The actions column is back to 80px. |
+| 41 | The search box grows again to take the free space in the toolbar (`flex: 1 1 320px; min-width: 180px`), so the toolbar spans the table width. |
+| 42 | The totals toggle is a round Σ button instead of a checkbox; it is filled teal while the totals row is shown. |
 
 ---
 
