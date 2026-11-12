@@ -358,7 +358,7 @@ All dialogs use `.overlay` with `.modal`. A mouse-down on the overlay closes the
 
 ### 9.6 Change data type
 
-- The user clicks the swap-arrows icon in the header.
+- The user opens the column menu (`.col-menu-btn`) and chooses **Change type**.
 - `convertValue(from, to, value)` converts each value through its text form (`valueToText`).
 - `changeTypeLossCount` counts the values that become empty. The dialog shows this count. When the target type is ID, the dialog also asks for a prefix.
 - Rules:
@@ -385,6 +385,24 @@ All dialogs use `.overlay` with `.modal`. A mouse-down on the overlay closes the
 - `updateMoreCols()` sets `hasMoreRight`. It runs on the `scroll` event of `.table-wrap`, on the window `resize` event, and from a `ResizeObserver` on `.table-wrap` and on its `table`. The observer callback uses `requestAnimationFrame`. This prevents the browser error "ResizeObserver loop completed with undelivered notifications". A 300 ms timer also runs `updateMoreCols()`. The timer finds a new `table` element after the empty state changes.
 - A click runs `scrollMoreCols()`. It scrolls `.table-wrap` to the right by 80 percent of its visible width (at least 200 px).
 - The button does not change the width of the header cell. The button does not depend on any column name.
+
+### 9.6a Column menu
+
+- Each header cell has a `.col-menu-btn` (▾) after the name, in place of the old filter, change-type, rename and remove icons. It is amber (`.active`) when the column has a filter.
+- The menu `.col-menu` is teleported to `body` (the table scroller would clip it) and positioned under the button with `position: fixed`, kept on screen, and opened upwards when there is no room below. Items: **Filter…** (opens the filter popover under the button, `openFilterPopoverAt`), **Change type** (shows the current type), **Rename**, and **Remove column**. Locked Index columns show only Filter… and a note.
+- **Hover.** `pointerenter` on the button with `pointerType === 'mouse'` opens it (`onColMenuHover`). Leaving the button or the menu starts a 250ms close timer (`onColMenuLeave`); entering the menu clears it (`keepColMenu`).
+- **Click or tap** toggles it (`clickColMenu`). A click on a menu opened by hover keeps it open. Touch never opens on hover, so a tap opens and a second tap closes.
+- It closes on an outside `mousedown`, on any scroll outside it (the button moves with the table), and after an item is chosen (`colMenuAction`). The filter popover's outside-click check ignores clicks in the menu and on the button.
+
+### 9.7a Touch screens (phones, iPad)
+
+- `touchOnly` is true when `(hover: none) and (pointer: coarse)` matches, which means no mouse or trackpad. Tabs and column headers are then not `draggable`, because on iOS a long-press on a draggable element starts a native drag.
+- **Tab menu by long-press.** `onTabTouchStart` starts a 500ms timer. `onTabTouchMove` cancels it when the finger moves more than 10px, since that's a scroll. When the timer fires, `openSheetMenu` opens at the touch point. `onTabTouchEnd` calls `preventDefault()` after a long-press so that the click (which would switch tabs) and the compatibility `mousedown` (which would close the menu) don't fire. `.sheet-tab` has `-webkit-touch-callout: none` so iOS doesn't show its own callout. `openSheetMenu` keeps the menu on screen.
+- **Move without dragging.** The tab menu has **Move left** and **Move right** (`canMoveSheet`, `moveSheet`; the Index stays first). The Show/Hide Columns dialog has up and down arrows on each column (`moveColumn`).
+- **Resize** uses pointer events (`pointerdown` on `.col-resize-handle`, then `pointermove`, `pointerup`, `pointercancel` on `window`), so a mouse, finger, or pen can resize. The handle has `touch-action: none`.
+- **CSS.** `@media (pointer: coarse)` sets 16px text in fields (iOS zooms in on smaller text when a field gets focus) and gives bigger tap targets to the header buttons, the resize handle, `.icon-btn`, the tabs, the tab menu, filter values, and the column list. `@media (max-width: 640px)` makes the page and dialog padding smaller. `body` has `touch-action: manipulation`, which removes the double-tap zoom delay but keeps pinch zoom. `.table-wrap` also uses `100dvh`, so the iOS address bar is taken into account.
+- The column filter popover (`toggleFilterPopover`) is moved back inside the screen after it is drawn, and its `maxWidth` is the screen width less 16px, so it doesn't run off the right edge on narrow screens.
+- The touch CSS sits at the end of the stylesheet so it overrides the base rules.
 
 ### 9.8a Column formats
 
@@ -542,11 +560,11 @@ No automated test suite exists. Each session writes short Playwright scripts. Ch
 | Export confirm | `getByRole('button', { name: /^Export$/ })` |
 | Import a file | `page.setInputFiles('input[type=file]', path)` |
 | Header cells | `thead th.col-custom-th` |
-| Change type icon | `.col-type-btn` (hover the header first) |
+| Column menu button | `.col-menu-btn` (hover or click it); menu `.col-menu`, items by text: Filter…, Change type, Rename, Remove column |
 | Actions cell | `td.col-actions` |
 | Table scroller | `.table-wrap` |
 | More-columns button | `.more-cols-btn` |
-| Column filter button | `thead th.col-custom-th` then `.col-filter-btn` |
+| Column filter | `.col-menu-btn`, then `.col-menu` button **Filter…** |
 | Filter popover | `.filter-popover` (Set values: `.filter-value`) |
 | Clear Filters button | `getByRole('button', { name: 'Clear Filters' }).first()`, or `.btn-filters` |
 | Row checkbox | `td.col-select input` |
@@ -630,6 +648,8 @@ No automated test suite exists. Each session writes short Playwright scripts. Ch
 | 41 | The search box grows again to take the free space in the toolbar (`flex: 1 1 320px; min-width: 180px`), so the toolbar spans the table width. |
 | 42 | The totals toggle is a round Σ button instead of a checkbox; it is filled teal while the totals row is shown. |
 | 43 | Defaults for new entries in the Format Columns dialog: a number (Number), Today or a date (Date), Now or a date and time (Date & Time). Saved on the column as `defaultMode` and `defaultValue`; used by `openAdd`. |
+| 44 | Touch screens: long-press a tab for its menu; Move left and Move right in the tab menu; column order arrows in Show/Hide Columns; resizing with pointer events; header buttons always shown without hover; 16px text in fields; bigger tap targets; smaller padding on phones; no native drag and drop on touch-only devices. |
+| 45 | Column menu: the filter, change-type, rename and remove icons in each header are replaced by one ▾ button that opens a menu on hover (mouse) or tap (touch). |
 
 ---
 

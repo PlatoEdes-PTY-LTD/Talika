@@ -35,6 +35,9 @@
     line-height:1.5;
   }
   #app{max-width:1800px;margin:0 auto;padding:28px 40px 60px;}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+  /* no double-tap zoom delay on taps; pinch zoom still works */
+  body{touch-action:manipulation;-webkit-tap-highlight-color:rgba(14,111,101,.12);}
 
   /* ---------- header ---------- */
   .page-head{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:22px;flex-wrap:wrap;}
@@ -111,6 +114,9 @@
   .col-vis-item:hover{border-color:#b7c2c8;}
   .col-vis-item.is-hidden{background:var(--danger-tint);border-color:#efc4c4;color:var(--ink-soft);}
   .col-vis-item .col-vis-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+  .col-vis-move{display:flex;gap:2px;}
+  .col-vis-move .icon-btn{padding:4px;}
+  .col-vis-move .icon-btn:disabled{opacity:.3;cursor:default;}
   .col-vis-item.is-hidden .col-vis-name{text-decoration:line-through;font-weight:500;}
 
   /* ---------- table ---------- */
@@ -118,7 +124,7 @@
   .more-cols-btn:hover{background:var(--teal-tint);color:var(--teal-dark);}
   .more-cols-btn svg{display:block;}
   .col-actions-th{text-align:center;}
-  .table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px 12px 12px 0;overflow:auto;max-height:calc(100vh - 236px);min-height:240px;box-shadow:var(--shadow);}
+  .table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px 12px 12px 0;overflow:auto;max-height:calc(100vh - 236px);max-height:calc(100dvh - 236px);min-height:240px;box-shadow:var(--shadow);-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
 
   /* ---------- sheet tabs (Excel-style, under the table) ---------- */
   .sheet-tabs{display:flex;align-items:flex-start;gap:2px;overflow-x:auto;padding:0 2px 4px;}
@@ -126,6 +132,7 @@
     flex-shrink:0;display:flex;align-items:center;max-width:220px;margin-top:-1px;
     padding:6px 14px;border:1px solid var(--line);border-top-color:transparent;border-radius:0 0 8px 8px;
     background:#eef2f1;color:var(--ink-soft);font-size:12.5px;font-weight:500;cursor:pointer;user-select:none;
+    -webkit-user-select:none;-webkit-touch-callout:none; /* long-press opens the tab menu, not the iOS callout */
   }
   .sheet-tab:hover{background:#e3e9e7;color:var(--ink);}
   .sheet-tab:focus-visible{outline:2px solid var(--teal);outline-offset:-2px;}
@@ -195,6 +202,20 @@
   .col-custom-th.is-dragging{opacity:0.4;cursor:grabbing;}
   .col-custom-th.is-drag-over{background:var(--teal-tint);box-shadow:inset 2px 0 0 var(--teal);}
   .col-head{display:flex;align-items:center;gap:3px;}
+  .col-menu-btn{
+    flex-shrink:0;border:none;background:transparent;color:var(--ink-soft);cursor:pointer;
+    padding:3px;border-radius:4px;display:flex;align-items:center;
+  }
+  .col-menu-btn:hover,.col-menu-btn.open{background:var(--line-soft);color:var(--ink);}
+  .col-menu-btn.active{color:#fff;background:var(--amber);}
+  .col-menu-btn.active:hover,.col-menu-btn.active.open{background:var(--amber);color:#fff;filter:brightness(.92);}
+  .col-menu{min-width:190px;text-transform:none;letter-spacing:0;}
+  .col-menu button{display:flex;align-items:center;gap:9px;}
+  .col-menu button svg{flex-shrink:0;color:var(--ink-soft);}
+  .col-menu button.danger svg{color:inherit;}
+  .col-menu-note{margin-left:auto;padding-left:12px;font-size:11px;color:var(--ink-soft);}
+  .col-menu-sep{height:1px;background:var(--line-soft);margin:4px 6px;}
+  .col-menu-locked{margin:4px 10px 6px;font-size:11.5px;color:var(--ink-soft);max-width:200px;}
   .col-sort-btn,.col-filter-btn{
     flex-shrink:0;border:none;background:transparent;color:var(--ink-soft);cursor:pointer;
     padding:2px;border-radius:4px;display:flex;align-items:center;
@@ -210,8 +231,6 @@
   .filter-value span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .filter-unset{color:var(--ink-soft);font-style:italic;}
   .col-name{flex:1;min-width:0;display:block;cursor:default;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .col-head-actions{flex-shrink:0;display:flex;gap:2px;opacity:0;}
-  .col-custom-th:hover .col-head-actions{opacity:1;}
   .col-rename-btn,.col-remove-btn,.col-type-btn{
     border:none;background:transparent;color:var(--ink-soft);cursor:pointer;padding:2px;border-radius:4px;display:flex;
   }
@@ -254,7 +273,7 @@
   .btn-link{border:none;background:transparent;color:var(--teal-dark);font-size:12px;font-weight:600;cursor:pointer;padding:2px 4px;}
   .btn-link:hover{text-decoration:underline;}
   .col-custom-th > span.col-resize-handle{
-    position:absolute;right:0;top:0;bottom:0;width:7px;cursor:col-resize;
+    position:absolute;right:0;top:0;bottom:0;width:7px;cursor:col-resize;touch-action:none;
     padding:0;display:block;z-index:2;max-width:none;
   }
   .col-resize-handle::after{
@@ -346,7 +365,29 @@
   }
   .fade-enter-active,.fade-leave-active{transition:opacity .2s;}
   .fade-enter-from,.fade-leave-to{opacity:0;}
-</style>
+  /* ---------- touch screens ---------- */
+  @media (pointer: coarse) {
+    /* 16px text stops iOS from zooming in when a field gets focus */
+    input[type=text],input[type=number],input[type=date],input[type=datetime-local],input[type=search],select,textarea{font-size:16px !important;}
+    .col-sort-btn,.col-menu-btn{padding:6px;}
+    .col-custom-th > span.col-resize-handle{width:16px;}
+    .col-resize-handle::after{right:7px;}
+    .icon-btn{padding:8px;}
+    .sheet-tab{padding:9px 16px;font-size:13.5px;}
+    .sheet-menu button{padding:11px 14px;font-size:15px;}
+    .filter-popover label.filter-value{padding:8px 2px;font-size:14px;}
+    .col-vis-item{padding:10px 12px;}
+    .col-vis-move .icon-btn{padding:8px;}
+  }
+  @media (max-width: 640px) {
+    #app{padding:16px 12px 40px;}
+    .page-head{margin-bottom:14px;}
+    .toolbar{gap:8px;margin-bottom:12px;}
+    .overlay{padding:12px 8px;}
+    .modal-body,.modal-head,.modal-foot{padding-left:16px;padding-right:16px;}
+    .modal-foot{flex-wrap:wrap;}
+  }
+  </style>
 
 <div id="app">
 
@@ -524,7 +565,7 @@
           </th>
           <th v-for="col in visibleColumns" :key="col.id" class="col-custom-th" :class="{ 'is-filtered': hasActiveFilter(col.id), 'is-dragging': dragColId === col.id, 'is-drag-over': dragOverColId === col.id && dragColId !== col.id }"
             :style="{width: (col.width || 200) + 'px'}"
-            :draggable="renamingColId !== col.id"
+            :draggable="!touchOnly && renamingColId !== col.id"
             @dragstart="onColDragStart($event, col)" @dragover.prevent="onColDragOver($event, col)"
             @drop.prevent="onColDrop($event, col)" @dragend="onColDragEnd">
             <div class="col-head">
@@ -538,22 +579,16 @@
                 @blur="commitRename(col)" @keydown.enter.prevent="commitRename(col)" @keydown.esc="cancelRename"
                 @click.stop @mousedown.stop ref="renameInputs">
               <span v-else class="col-name" :title="typeLabels[col.type] + (col.locked ? ' — Index column: can\'t be renamed, retyped or removed' : ' — double-click to rename, drag to reorder')" @dblclick="startRename(col)">{{ col.name }}</span>
-              <button type="button" class="col-filter-btn" draggable="false" :class="{active: hasActiveFilter(col.id)}" @click.stop="toggleFilterPopover($event, col)" :title="filterTitle(col)">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12"/></svg>
+              <button type="button" class="col-menu-btn" draggable="false" v-if="renamingColId !== col.id"
+                :class="{ active: hasActiveFilter(col.id), open: colMenu && colMenu.col.id === col.id }"
+                @pointerenter="onColMenuHover($event, col)" @pointerleave="onColMenuLeave"
+                @click.stop="clickColMenu($event, col)"
+                aria-haspopup="menu" :aria-expanded="colMenu && colMenu.col.id === col.id ? 'true' : 'false'"
+                :aria-label="'Column menu for ' + col.name" :title="hasActiveFilter(col.id) ? 'Column menu (filter active)' : 'Column menu'">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
-              <div class="col-head-actions" draggable="false" v-if="renamingColId !== col.id && !col.locked">
-                <button type="button" class="col-type-btn" title="Change data type" @click="openChangeType(col)">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
-                </button>
-                <button type="button" class="col-rename-btn" title="Rename column" @click="startRename(col)">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button type="button" class="col-remove-btn" title="Remove column" @click="removeColumn(col)">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-              </div>
             </div>
-            <span class="col-resize-handle" draggable="false" @mousedown.prevent.stop="startResize($event, col)"></span>
+            <span class="col-resize-handle" draggable="false" @pointerdown.prevent.stop="startResize($event, col)"></span>
           </th>
           <th style="width:44px" class="col-add-th">
             <button type="button" class="icon-btn" title="Add column" @click="openAddColumn">
@@ -637,9 +672,10 @@
     <div v-for="s in sheets" :key="s.id" class="sheet-tab" role="tab" tabindex="0"
       :class="{ active: s.id === activeSheetId, 'is-index': s.isIndex, 'is-dragging': dragSheetId === s.id, 'is-drag-over': dragOverSheetId === s.id && dragSheetId !== s.id }"
       :aria-selected="s.id === activeSheetId ? 'true' : 'false'"
-      :title="s.isIndex ? 'Index — lists every tab in this document' : s.name + ' — double-click to rename, right-click for more, drag to reorder'"
-      :draggable="!s.isIndex && renamingSheetId !== s.id"
+      :title="s.isIndex ? 'Index — lists every tab in this document' : s.name + ' — double-click to rename, right-click or long-press for more, drag to reorder'"
+      :draggable="!touchOnly && !s.isIndex && renamingSheetId !== s.id"
       @click="switchSheet(s.id)" @keydown.enter="switchSheet(s.id)" @dblclick="startSheetRename(s)" @contextmenu.prevent="openSheetMenu($event, s)"
+      @touchstart.passive="onTabTouchStart($event, s)" @touchmove.passive="onTabTouchMove" @touchend="onTabTouchEnd" @touchcancel="onTabTouchEnd"
       @dragstart="onSheetDragStart($event, s)" @dragover.prevent="onSheetDragOver(s)" @drop.prevent="onSheetDrop(s)" @dragend="onSheetDragEnd">
       <input v-if="renamingSheetId === s.id" type="text" class="sheet-tab-input" v-model="sheetRenameDraft" maxlength="31" ref="sheetRenameInputs"
         @blur="commitSheetRename(s)" @keydown.enter.prevent.stop="commitSheetRename(s)" @keydown.esc.stop="renamingSheetId = null"
@@ -651,9 +687,30 @@
     </button>
   </div>
   <teleport to="body">
+    <div class="sheet-menu col-menu" v-if="colMenu" :style="colMenu.style" role="menu" @mousedown.stop
+      @pointerenter="keepColMenu" @pointerleave="onColMenuLeave">
+      <button type="button" role="menuitem" @click="colMenuAction('filter')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12"/></svg><span>Filter…</span><span class="col-menu-note" v-if="hasActiveFilter(colMenu.col.id)">on</span>
+      </button>
+      <template v-if="!colMenu.col.locked">
+        <button type="button" role="menuitem" @click="colMenuAction('type')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg><span>Change type</span><span class="col-menu-note">{{ typeLabels[colMenu.col.type] }}</span>
+        </button>
+        <button type="button" role="menuitem" @click="colMenuAction('rename')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Rename</span>
+        </button>
+        <div class="col-menu-sep"></div>
+        <button type="button" role="menuitem" class="danger" @click="colMenuAction('remove')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Remove column</span>
+        </button>
+      </template>
+      <p class="col-menu-locked" v-else>Index column: it can't be renamed, retyped or removed.</p>
+    </div>
     <div class="sheet-menu" v-if="sheetMenu" :style="sheetMenu.style" @mousedown.stop>
       <button type="button" :disabled="sheetMenu.sheet.isIndex" :title="sheetMenu.sheet.isIndex ? 'The Index tab can\'t be renamed' : ''" @click="menuSheetAction('rename')">Rename</button>
       <button type="button" :disabled="sheetMenu.sheet.isIndex" :title="sheetMenu.sheet.isIndex ? 'The Index tab can\'t be duplicated' : ''" @click="menuSheetAction('duplicate')">Duplicate</button>
+      <button type="button" :disabled="!canMoveSheet(sheetMenu.sheet, -1)" @click="menuSheetAction('left')">Move left</button>
+      <button type="button" :disabled="!canMoveSheet(sheetMenu.sheet, 1)" @click="menuSheetAction('right')">Move right</button>
       <button type="button" class="danger" :disabled="sheetMenu.sheet.isIndex || contentSheetCount === 1" :title="sheetMenu.sheet.isIndex ? 'The Index tab can\'t be deleted' : (contentSheetCount === 1 ? 'A document needs at least one sheet besides the Index' : '')" @click="menuSheetAction('delete')">Delete</button>
     </div>
   </teleport>
@@ -804,12 +861,16 @@
         </button>
       </div>
       <div class="modal-body">
-        <p class="hint" style="margin:0 0 12px;">Untick a column to hide it from the table. Hidden columns keep their data and are still exported and editable.</p>
+        <p class="hint" style="margin:0 0 12px;">Untick a column to hide it from the table. Hidden columns keep their data and are still exported and editable. The arrows change the column order (up is left).</p>
         <div class="col-vis-list">
-          <label class="col-vis-item" v-for="col in columns" :key="col.id" :class="{ 'is-hidden': col.hidden }">
+          <label class="col-vis-item" v-for="(col, ci) in columns" :key="col.id" :class="{ 'is-hidden': col.hidden }">
             <input type="checkbox" :checked="!col.hidden" @change="setColumnHidden(col, !$event.target.checked)">
             <span class="col-vis-name">{{ col.name }}</span>
             <span class="field-type" style="margin-left:0;">{{ typeLabels[col.type] }}</span>
+            <span class="col-vis-move">
+              <button type="button" class="icon-btn" :disabled="ci === 0" @click.prevent="moveColumn(col, -1)" :title="'Move ' + col.name + ' left'" :aria-label="'Move ' + col.name + ' left'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><polyline points="18 15 12 9 6 15"/></svg></button>
+              <button type="button" class="icon-btn" :disabled="ci === columns.length - 1" @click.prevent="moveColumn(col, 1)" :title="'Move ' + col.name + ' right'" :aria-label="'Move ' + col.name + ' right'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><polyline points="6 9 12 15 18 9"/></svg></button>
+            </span>
           </label>
         </div>
       </div>
@@ -1588,6 +1649,9 @@ createApp({
        app works on it directly. Every other sheet keeps its data on its entry
        in `sheets` until it is switched to. */
     const sheets = reactive([]); // makeSheet() entries
+    /* phones and tablets without a mouse or trackpad: no native drag and drop
+       (a long-press opens the tab menu instead; tabs and columns move with buttons) */
+    const touchOnly = !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches);
     const activeSheetId = ref(null);
     const activeSheet = computed(() => sheets.find(s => s.id === activeSheetId.value) || null);
     function sheetContent(s) {
@@ -1983,20 +2047,90 @@ createApp({
     }
     function toggleFilterPopover(e, col) {
       if (openFilterColId.value === col.id) { openFilterColId.value = null; return; }
+      openFilterPopoverAt(e.currentTarget.getBoundingClientRect(), col);
+    }
+    /* opens the filter popover under `r` (a rect: left, bottom) */
+    function openFilterPopoverAt(r, col) {
       ensureFilter(col);
-      const r = e.currentTarget.getBoundingClientRect();
       filterPopoverStyle.value = { left: r.left + 'px', top: (r.bottom + 6) + 'px' };
       openFilterColId.value = col.id;
+      // once drawn, pull it back inside the screen (narrow screens, right-hand columns)
+      nextTick(() => {
+        const el = document.querySelector('.filter-popover');
+        if (!el) return;
+        const w = el.offsetWidth, vw = document.documentElement.clientWidth;
+        const left = Math.max(8, Math.min(r.left, vw - w - 8));
+        filterPopoverStyle.value = { ...filterPopoverStyle.value, left: left + 'px', maxWidth: (vw - 16) + 'px' };
+      });
     }
     function clearFilter(col) {
       columnFilters[col.id] = emptyFilterFor(col);
     }
     function closeFilterPopoverOutside(e) {
       if (!openFilterColId.value) return;
-      if (e.target.closest && (e.target.closest('.filter-popover') || e.target.closest('.col-filter-btn'))) return;
+      if (e.target.closest && (e.target.closest('.filter-popover') || e.target.closest('.col-menu') || e.target.closest('.col-menu-btn'))) return;
       openFilterColId.value = null;
     }
     window.addEventListener('mousedown', closeFilterPopoverOutside);
+
+    /* ---- column menu (Filter, Change type, Rename, Remove) ----
+       A mouse opens it by hovering the ▾ button and it closes shortly after
+       the pointer leaves both the button and the menu. A click or tap
+       toggles it, so it works on touch screens too. */
+    const colMenu = ref(null); // { col, rect, style, byHover }
+    let colMenuCloseTimer = null;
+    function openColMenu(btn, col, byHover) {
+      clearTimeout(colMenuCloseTimer);
+      const b = btn.getBoundingClientRect();
+      const rect = { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
+      colMenu.value = { col, rect, byHover, style: { left: b.left + 'px', top: (b.bottom + 4) + 'px' } };
+      nextTick(() => {
+        const el = document.querySelector('.col-menu');
+        if (!el || !colMenu.value) return;
+        const vw = document.documentElement.clientWidth, vh = window.innerHeight;
+        const left = Math.max(8, Math.min(rect.left, vw - el.offsetWidth - 8));
+        // open upwards when there is no room below
+        const top = rect.bottom + 4 + el.offsetHeight > vh - 8 ? Math.max(8, rect.top - el.offsetHeight - 4) : rect.bottom + 4;
+        colMenu.value.style = { left: left + 'px', top: top + 'px' };
+      });
+    }
+    function onColMenuHover(e, col) {
+      if (e.pointerType !== 'mouse') return; // touch: wait for the tap
+      if (colMenu.value && colMenu.value.col.id === col.id) { clearTimeout(colMenuCloseTimer); return; }
+      openColMenu(e.currentTarget, col, true);
+    }
+    function onColMenuLeave(e) {
+      if (e && e.pointerType !== 'mouse') return;
+      clearTimeout(colMenuCloseTimer);
+      colMenuCloseTimer = setTimeout(() => { colMenu.value = null; }, 250);
+    }
+    function keepColMenu() { clearTimeout(colMenuCloseTimer); }
+    function clickColMenu(e, col) {
+      const m = colMenu.value;
+      if (m && m.col.id === col.id) {
+        if (m.byHover) { m.byHover = false; return; } // a click on a hover-opened menu keeps it open
+        colMenu.value = null;
+        return;
+      }
+      openColMenu(e.currentTarget, col, false);
+    }
+    function colMenuAction(action) {
+      const m = colMenu.value;
+      colMenu.value = null;
+      clearTimeout(colMenuCloseTimer);
+      if (!m) return;
+      if (action === 'filter') openFilterPopoverAt(m.rect, m.col);
+      else if (action === 'type') openChangeType(m.col);
+      else if (action === 'rename') startRename(m.col);
+      else if (action === 'remove') removeColumn(m.col);
+    }
+    window.addEventListener('mousedown', e => {
+      if (colMenu.value && !(e.target.closest && (e.target.closest('.col-menu') || e.target.closest('.col-menu-btn')))) colMenu.value = null;
+    });
+    // the button moves when the table scrolls, so close rather than float away
+    window.addEventListener('scroll', e => {
+      if (colMenu.value && !(e.target.closest && e.target.closest('.col-menu'))) colMenu.value = null;
+    }, true);
     const tableWrap = ref(null);
     const hasMoreRight = ref(false);
     function updateMoreCols() {
@@ -2135,26 +2269,33 @@ createApp({
     }
 
     /* ---- column resize ---- */
+    /* pointer events, so a mouse, a finger or a pen can resize */
     function startResize(e, col) {
+      if (e.button !== undefined && e.button !== 0) return;
       const startX = e.clientX;
       const startWidth = col.width || 200;
       const handle = e.currentTarget;
+      const pointerId = e.pointerId;
       handle.classList.add('resizing');
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
       function onMove(ev) {
+        if (ev.pointerId !== pointerId) return;
         col.width = Math.max(90, startWidth + (ev.clientX - startX));
       }
-      function onUp() {
+      function onUp(ev) {
+        if (ev.pointerId !== pointerId) return;
         handle.classList.remove('resizing');
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
         persist();
       }
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
     }
 
     /* ---- column rename ---- */
@@ -2313,6 +2454,13 @@ createApp({
       }
       persist();
     }
+    function moveColumn(col, dir) {
+      const i = columns.indexOf(col), j = i + dir;
+      if (i === -1 || j < 0 || j >= columns.length) return;
+      columns.splice(i, 1);
+      columns.splice(j, 0, col);
+      persist();
+    }
     function showAllColumns() {
       columns.forEach(c => { delete c.hidden; });
       persist();
@@ -2454,8 +2602,50 @@ createApp({
 
     const sheetMenu = ref(null); // { sheet, style }
     function openSheetMenu(e, sheet) {
-      // tabs sit at the bottom of the page, so the menu opens upwards
-      sheetMenu.value = { sheet, style: { left: e.clientX + 'px', bottom: (window.innerHeight - e.clientY + 4) + 'px' } };
+      // tabs sit at the bottom of the page, so the menu opens upwards; keep it on screen
+      const left = Math.max(8, Math.min(e.clientX, window.innerWidth - 180));
+      sheetMenu.value = { sheet, style: { left: left + 'px', bottom: (window.innerHeight - e.clientY + 4) + 'px' } };
+    }
+    /* long-press on a tab (touch screens) opens the same menu as right-click */
+    let tabPress = null; // { timer, x, y, fired }
+    function onTabTouchStart(e, sheet) {
+      cancelTabPress();
+      if (e.touches.length !== 1 || renamingSheetId.value === sheet.id) return;
+      const t = e.touches[0];
+      const press = { x: t.clientX, y: t.clientY, fired: false };
+      press.timer = setTimeout(() => {
+        press.fired = true;
+        openSheetMenu({ clientX: press.x, clientY: press.y }, sheet);
+        if (navigator.vibrate) { try { navigator.vibrate(10); } catch (err) { /* not allowed */ } }
+      }, 500);
+      tabPress = press;
+    }
+    function onTabTouchMove(e) {
+      if (!tabPress || tabPress.fired) return;
+      const t = e.touches[0];
+      if (Math.hypot(t.clientX - tabPress.x, t.clientY - tabPress.y) > 10) cancelTabPress(); // a scroll, not a press
+    }
+    function onTabTouchEnd(e) {
+      // after a long-press, stop the click and mouse events that would switch tabs and close the menu
+      if (tabPress && tabPress.fired && e.cancelable) e.preventDefault();
+      cancelTabPress();
+    }
+    function cancelTabPress() {
+      if (tabPress) clearTimeout(tabPress.timer);
+      tabPress = null;
+    }
+    function canMoveSheet(sheet, dir) {
+      if (!sheet || sheet.isIndex) return false;
+      const i = sheets.indexOf(sheet), j = i + dir;
+      return i !== -1 && j >= 0 && j < sheets.length && !sheets[j].isIndex;
+    }
+    function moveSheet(sheet, dir) {
+      if (!canMoveSheet(sheet, dir)) return;
+      const i = sheets.indexOf(sheet);
+      sheets.splice(i, 1);
+      sheets.splice(i + dir, 0, sheet);
+      syncIndex();
+      persist();
     }
     function menuSheetAction(action) {
       const sheet = sheetMenu.value && sheetMenu.value.sheet;
@@ -2464,6 +2654,8 @@ createApp({
       if (action === 'rename') startSheetRename(sheet);
       else if (action === 'duplicate') duplicateSheet(sheet);
       else if (action === 'delete') requestDeleteSheet(sheet);
+      else if (action === 'left') moveSheet(sheet, -1);
+      else if (action === 'right') moveSheet(sheet, 1);
     }
     window.addEventListener('mousedown', () => { sheetMenu.value = null; });
     window.addEventListener('scroll', () => { sheetMenu.value = null; }, true);
@@ -2893,6 +3085,8 @@ createApp({
       showHiddenInDialog, dialogColumns, openAdd, openEdit, closeDialog, saveEntry, saveAndClose, editingPosition, hasNextRecord, canSaveAndNext, editNext, confirmDelete, doDelete,
       handleImport, startResize,
       numberTotals, hasNumberTotals, formatTotal,
+      colMenu, onColMenuHover, onColMenuLeave, keepColMenu, clickColMenu, colMenuAction,
+      touchOnly, onTabTouchStart, onTabTouchMove, onTabTouchEnd, canMoveSheet, moveColumn,
       formatOpen, formatDraft, hasNumberColumns, setTotalsShown, formattableColumns, openFormatDialog, formatPreview, applyFormats,
       DATE_FORMATS, TIME_FORMATS, DECIMAL_CHOICES, dateFormatLabel, timeFormatLabel,
       sheets, activeSheetId, sheetContent, totalRowCount, activeIsIndex, contentSheetCount, openSheetByName, bulkColumns, hasExportableData, isBlankWorkbook, pendingImportRowCount,
