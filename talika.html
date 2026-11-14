@@ -3019,7 +3019,13 @@ createApp({
       }
       return `use-cases-${new Date().toISOString().slice(0, 10)}`;
     }
+    const canPickSaveFile = typeof window.showSaveFilePicker === 'function';
+    function safeExportName(fileName) {
+      return (fileName || defaultExportFileName()).trim().replace(/[\\/:*?"<>|]/g, '-').replace(/\.(xlsx|xls)$/i, '') || 'use-cases';
+    }
     function openExportDialog() {
+      // Browsers with the File System Access API show the system Save dialog, which asks for the name itself
+      if (canPickSaveFile) { exportExcel(defaultExportFileName()); return; }
       exportFileName.value = defaultExportFileName();
       exportDialogOpen.value = true;
     }
@@ -3057,7 +3063,7 @@ createApp({
       });
       return ws;
     }
-    function exportExcel(fileName) {
+    async function exportExcel(fileName) {
       const wb = XLSX.utils.book_new();
       const used = [];
       sheets.forEach(s => {
@@ -3066,8 +3072,32 @@ createApp({
         used.push(name.toLowerCase());
         XLSX.utils.book_append_sheet(wb, buildWorksheet(c.columns, c.rows), name);
       });
-      const safeName = (fileName || defaultExportFileName()).trim().replace(/[\\/:*?"<>|]/g, '-').replace(/\.(xlsx|xls)$/i, '') || 'use-cases';
-      XLSX.writeFile(wb, `${safeName}.xlsx`);
+      const suggestedName = `${safeExportName(fileName)}.xlsx`;
+      if (canPickSaveFile) {
+        let handle;
+        try {
+          handle = await window.showSaveFilePicker({
+            suggestedName,
+            types: [{ description: 'Excel workbook', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }]
+          });
+        } catch (err) {
+          if (err && err.name === 'AbortError') return; // user cancelled the dialog
+          handle = null; // picker blocked (e.g. cross-origin frame): fall back to a download
+        }
+        if (handle) {
+          try {
+            const writable = await handle.createWritable();
+            await writable.write(XLSX.write(wb, { bookType: 'xlsx', type: 'array' }));
+            await writable.close();
+          } catch (err) {
+            showToast('Could not save the file');
+            return;
+          }
+          showToast(sheets.length === 1 ? `Saved ${handle.name}` : `Saved ${handle.name} with ${sheets.length} sheets`);
+          return;
+        }
+      }
+      XLSX.writeFile(wb, suggestedName);
       showToast(sheets.length === 1 ? 'Exported Excel file' : `Exported Excel file with ${sheets.length} sheets`);
     }
 
